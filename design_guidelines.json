@@ -1,0 +1,135 @@
+{
+  "project_name": "Pathfinder AI (Psychometric & Career Assessment App)",
+  "theme": "light",
+  "archetype": "Pastel & Soft mixed with Swiss Neo-Brutalism (Gen Z Approachable + Trusted Tech)",
+  "typography": {
+    "font_strategy": "The 'Editorial Future' - Techy but approachable. Sharp contrast between headings and body.",
+    "headings": {
+      "family": "Outfit",
+      "weights": ["600", "800"],
+      "usage": "Use 'tracking-tight' for all headings. For main Hero text use 'text-5xl md:text-6xl font-extrabold tracking-tighter'."
+    },
+    "body": {
+      "family": "DM Sans",
+      "weights": ["400", "500"],
+      "usage": "Use 'leading-relaxed' for readability in assessment questions and reports."
+    },
+    "labels": {
+      "usage": "Uppercase, tiny, tracking-[0.2em] (e.g., text-xs font-bold uppercase tracking-[0.2em])"
+    }
+  },
+  "colors": {
+    "background": {
+      "default": "#FAFAF9",
+      "card": "#FFFFFF"
+    },
+    "primary": {
+      "brand": "#3B82F6",
+      "hover": "#2563EB",
+      "foreground": "#FFFFFF"
+    },
+    "accents": {
+      "yellow_pastel": "#FEF08A",
+      "mint_pastel": "#A7F3D0",
+      "lavender_pastel": "#E9D5FF",
+      "peach_pastel": "#FFDDBF"
+    },
+    "structural": {
+      "border": "#0A0A0A",
+      "text_main": "#0A0A0A",
+      "text_muted": "#52525B"
+    },
+    "rules": [
+      "No muddy grays. Use stark black (#0A0A0A) for borders and text to ground the soft pastels.",
+      "Primary actions use the Brand blue. Secondary/decorative cards use pastel fills with solid black borders.",
+      "CRITICAL: Do not use complete transparent background in header or overlays."
+    ]
+  },
+  "visual_enhancers": {
+    "shadows": {
+      "neo_brutalist": "shadow-[4px_4px_0_0_rgba(10,10,10,1)] hover:shadow-[2px_2px_0_0_rgba(10,10,10,1)] hover:translate-y-[2px] transition-all",
+      "soft_ambient": "shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+    },
+    "borders": {
+      "default": "border-2 border-[#0A0A0A]"
+    },
+    "radii": {
+      "cards": "rounded-2xl",
+      "buttons": "rounded-full",
+      "inputs": "rounded-xl"
+    },
+    "surfaces": {
+      "glass": "backdrop-blur-xl bg-white/70 border-b-2 border-[#0A0A0A]",
+      "bento_card": "bg-white border-2 border-[#0A0A0A] rounded-2xl shadow-[4px_4px_0_0_rgba(10,10,10,1)] p-6 md:p-8"
+    }
+  },
+  "layouts": {
+    "spacing": "Generous Spacing Philosophy. Use p-6, p-8, and p-12 for containers. Ensure padding prevents border collisions.",
+    "grids": {
+      "marketing_student": "Mode A: 'Tetris' Grid. Use grid-cols-1 md:grid-cols-12 gap-6 or gap-8. Create asymmetry (e.g., col-span-8 for hero card, col-span-4 for stats).",
+      "admin": "Mode B: High Density Grid. grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4. Every pixel utilized, h-full on children."
+    }
+  },
+  "motion": {
+    "interactions": "Hover states must include a slight translate (e.g., -translate-y-1) and shadow adjustment. Do NOT use 'transition: all'. Use 'transition-transform transition-shadow duration-200'.",
+    "assessment_flow": "Use Framer Motion to slide questions in (x: 20, opacity: 0 to x: 0, opacity: 1) to make the quiz feel lightweight."
+  },
+  "components": {
+    "buttons": "Pill-shaped (rounded-full) or crisp rectangles (rounded-xl) with solid borders. Primary CTA gets the neo-brutalist shadow.",
+    "assessment_cards": "One question per screen. Large, touch-friendly answer buttons. Progress bar at the top with a pulsing 'Tracing Beam' effect on the active portion.",
+    "admin_tables": "Shadcn tables. Add 'Grid Borders' style: border-r border-b on cells to expose the skeleton.",
+    "charts": "Use Recharts (via Shadcn) for RIASEC and Mental Ability results. Use pastel colors for radar/bar charts, maintaining high contrast text labels."
+  },
+  "icons_and_assets": {
+    "library": "lucide-react (default) mixed with iconoir-react for playful, distinct illustrations.",
+    "images": [
+      {
+        "category": "Hero / Landing Page",
+        "url": "https://images.unsplash.com/photo-1571643829392-9a9a826a2a21?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzV8MHwxfHNlYXJjaHwzfHxoaWdoJTIwc2Nob29sJTIwc3R1ZGVudCUyMHN0dWR5aW5nJTIwc21pbGluZ3xlbnwwfHx8fDE3ODUzMTI5MjB8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Smiling high school student. Use with a slight tilt and a neo-brutalist black border wrapper to feel energetic."
+      },
+      {
+        "category": "AI Career Report",
+        "url": "https://images.unsplash.com/photo-1617791160536-598cf32026fb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDZ8MHwxfHNlYXJjaHwyfHxhYnN0cmFjdCUyMGdsb3dpbmclMjBicmFpbiUyMEFJfGVufDB8fHx8MTc4NTMxMjkyMXww&ixlib=rb-4.1.0&q=85",
+        "description": "Iridescent AI brain render. Place in a designated 'AI Insights' bento box on the report page."
+      },
+      {
+        "category": "Student Dashboard Placeholder",
+        "url": "https://images.unsplash.com/photo-1513258496099-48168024aec0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzJ8MHwxfHNlYXJjaHwyfHx0ZWVuYWdlciUyMGxvb2tpbmclMjBhdCUyMGxhcHRvcCUyMGZ1dHVyZXxlbnwwfHx8fDE3ODUzMTI5MjF8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Teenager with headphones working on laptop. Good for a 'Continue Assessment' or 'Community' card."
+      }
+    ]
+  },
+  "accessibility": {
+    "contrast": "Black (#0A0A0A) text on pastel backgrounds guarantees WCAG AA/AAA compliance.",
+    "testing": "All interactive and key informational elements MUST include a `data-testid` attribute (e.g., data-testid='start-assessment-btn').",
+    "motion": "Respect 'prefers-reduced-motion'. Add aria-hidden to decorative icons."
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow the Neo-Brutalist + Pastel aesthetic. Avoid 'default SaaS' gray shadows and muted blues.",
+    "Do NOT use HTML <select> or <input type='date'>. Use Shadcn DropdownMenu and Calendar.",
+    "For the assessment UI, prioritize a single-question view with large, easily clickable options and a clear progress indicator.",
+    "Do NOT center align the entire app container (no .App { text-align: center; }). Keep text left-aligned for readability, only centering specific hero headers or empty states.",
+    "Install `iconoir-react` for distinct icons if needed, but rely heavily on standard Shadcn `lucide-react` with bold stroke-widths (e.g., strokeWidth={2.5}).",
+    "Use 'sonner' for toast notifications (located in /app/src/components/ui/sonner.tsx)."
+  ],
+  "universal_guidelines_for_main_agent": [
+    "You tend to converge toward generic, 'on distribution' outputs. In frontend design, this creates what users call the 'AI slop' aesthetic. Avoid this: make creative, distinctive frontends that surprise and delight.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy and neo-brutalist solid borders + shadows.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur), ensuring an opaque base for readability.",
+    "You MUST NOT apply universal transition. Eg: transition: all. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms.",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; } in the css file. This disrupts the human natural reading flow of text.",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style.",
+    "NEVER: use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯 etc for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Main agent relies on provided image URLs. Missing categories = main agent will use placeholder text which is FORBIDDEN.",
+    "Prioritize using pre-existing components from src/components/ui when applicable.",
+    "Create new components that match the style and conventions of existing components when needed.",
+    "Examine existing components to understand the project's component patterns before creating new ones.",
+    "Use `sonner` for toasts."
+  ]
+}
