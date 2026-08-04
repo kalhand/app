@@ -267,27 +267,32 @@ async def seed_defaults():
         await db.users.insert_one(doc)
         logger.info(f"Seeded {u['role']}: {u['email']}")
 
-    if await db.questions.count_documents({}) == 0:
-        docs = []
-        for q in DEFAULT_QUESTIONS:
-            docs.append({
+    # Upsert each DEFAULT question by text so newly-added senior questions land on next boot
+    for q in DEFAULT_QUESTIONS:
+        existing = await db.questions.find_one({"text": q["text"]})
+        if existing:
+            await db.questions.update_one(
+                {"text": q["text"]},
+                {"$set": {
+                    "category": q["category"],
+                    "options": q["options"],
+                    "trait_map": q.get("trait_map"),
+                    "correct_index": q.get("correct_index"),
+                    "grade_levels": q.get("grade_levels") or [8, 9, 10, 11, 12],
+                }},
+            )
+        else:
+            await db.questions.insert_one({
                 "id": str(uuid.uuid4()),
                 "category": q["category"],
                 "text": q["text"],
                 "options": q["options"],
                 "trait_map": q.get("trait_map"),
                 "correct_index": q.get("correct_index"),
-                "grade_levels": q.get("grade_levels") or [8,9,10,11,12],
+                "grade_levels": q.get("grade_levels") or [8, 9, 10, 11, 12],
                 "created_at": datetime.now(timezone.utc).isoformat(),
             })
-        await db.questions.insert_many(docs)
-        logger.info(f"Seeded {len(docs)} default questions")
-    else:
-        # Backfill grade_levels for older questions
-        await db.questions.update_many(
-            {"grade_levels": {"$in": [None, []]}},
-            {"$set": {"grade_levels": [8, 9, 10, 11, 12]}},
-        )
+    logger.info(f"Ensured {len(DEFAULT_QUESTIONS)} default questions present")
 
 
 @app.on_event("startup")
