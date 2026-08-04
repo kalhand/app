@@ -16,6 +16,7 @@ const ROLE_LINKS = {
     { to: "/university", label: "Overview", id: "nav-university" },
     { to: "/university/schools", label: "Schools", id: "nav-university-schools" },
     { to: "/university/students", label: "Students", id: "nav-university-students" },
+    { to: "/university/branding", label: "Branding", id: "nav-university-branding" },
   ],
   counselor: [
     { to: "/counselor", label: "School Overview", id: "nav-counselor" },

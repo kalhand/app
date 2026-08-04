@@ -1,0 +1,43 @@
+{
+  "summary": "Iteration 7 (Branding + School Invite Codes + NEP explainer + Indian imagery). Backend: 16/16 pytest tests pass — PUT/GET /api/university/branding (RBAC 403 for non-univ), GET /api/branding/for-school/Demo Public School returns seeded university branding (logo_url + headline_color + tagline + university_name='Panjab University Career Cell'), non-existent/system school returns all-null shape. Invite lifecycle: create (8-char uppercase alphanum code) → list → public GET (no auth) → accept (creates user with invite role+school, returns token) → second accept 400 'already been used' → subsequent public GET 400 → revoke removes it (404 afterward). Non-university roles get 403 on create. Frontend: Landing NEP section renders with 4 pillar cards + 'How Pathfinder AI helps' callout + Indian-classroom hero image; nav-university-branding link present; /university/branding page loads (brand-logo-url, brand-color, brand-tagline, brand-save) and persists across reload; /university/schools shows univ-invite-btn-{id} on each card, modal exposes invite-role-principal/counselor + invite-generate-btn, generation surfaces invite-link with full URL; anonymous /invite/{code} in a fresh context renders invite-name/email/password inputs, submission auto-logs-in as principal and redirects to /principal; student report shows brand-banner (data-testid) at top with 'Powered by Panjab University Career Cell' + tagline 'India Ka Career Compass' for seed student's Demo Public School results; RBAC redirects student away from /university/branding to /dashboard.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/branding/for-school/{name}", "issue": "No dedicated test for a school whose created_by == 'system' (seed upserts Demo Public School to university id on boot, so this branch was covered indirectly via a random non-existent school which hits the same null-return branch). Fine functionally; consider inserting a system-owned fixture school for stronger coverage."},
+      {"endpoint": "POST /api/invite/{code}/accept", "issue": "InviteAcceptInput.email is EmailStr; sending empty string would 422 with structured detail — frontend already uses formatApiErrorDetail so no crash."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "UniversityDashboard", "issues": ["Recharts warning 'The width(-1) and height(-1) of chart should be greater than 0' still emitted (carried over from iter6). Add explicit min-height on ResponsiveContainer."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration7.py",
+    "/app/test_reports/pytest/iter7.xml"
+  ],
+  "action_items": [
+    "(Optional) Silence Recharts width/height=-1 warnings by giving ResponsiveContainer a concrete min-height in UniversityDashboard.jsx.",
+    "(Optional) Add a Cypress/Playwright fixture that seeds a 'system'-owned school so the branding/for-school null-shape path is asserted explicitly (currently only exercised via a non-existent school)."
+  ],
+  "critical_code_review_comments": [
+    "server.py is now 1581 lines — university (branding + invites) endpoints are a natural module boundary; split into routers/university.py.",
+    "InviteAcceptInput enforces EmailStr but the accept endpoint does NOT normalise/strip whitespace or check password strength. Fine for MVP; add password policy later.",
+    "Invite `expires_at` is stored as ISO string; comparing via fromisoformat is fine but consider storing as native datetime for indexed TTL cleanup.",
+    "GET /api/branding/for-school/{name} uses path param — a school with a slash or unusual chars will 404 at the routing layer. Consider a query param or slugified lookup for robustness.",
+    "In UniversityBranding.jsx save() the catch swallows structured error detail (uses plain string). Since server returns JSON detail, formatApiErrorDetail should be used here too for parity with InviteAccept.jsx."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration7.py",
+    "/app/test_reports/iteration_7.json"
+  ],
+  "success_rate": {"backend": "100% (16/16)", "frontend": "100% (all critical flows verified: NEP explainer, branding CRUD+persistence, invite generate, anonymous invite accept → /principal redirect, student report brand-banner, RBAC)"},
+  "test_credentials": "Seed accounts from /app/memory/test_credentials.md used; test invitee emails are ephemeral 'test_invite_*@example.com' created via the accept endpoint.",
+  "seed_data_creation": "Backend tests created (a) new principal-invite users via /invite/{code}/accept and (b) an ephemeral counselor invite (revoked). Branding was left set to logo=https://example.com/logo.png, color=#0e4d92, tagline='India Ka Career Compass' at end of run so the report brand-banner keeps rendering the expected values.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All iteration-7 endpoints are green. Backend base URL must be exported (export REACT_APP_BACKEND_URL=$(grep REACT_APP_BACKEND_URL /app/frontend/.env | cut -d= -f2)) before running pytest, otherwise requests barfs with MissingSchema. Do NOT trigger /assessment/submit or /careers/explore for AI-budget reasons; reuse existing seed student's past report IDs from /api/results/me for report-page checks. Recharts width=-1 warnings on UniversityDashboard are still present (iter6 carryover).",
+  "rca of the issue": "N/A — no functional bugs found in iteration 7."
+}

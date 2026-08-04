@@ -4,7 +4,7 @@ import api from "@/lib/api";
 import { formatApiErrorDetail } from "@/lib/api";
 import { BOARDS } from "@/lib/nep";
 import { toast } from "sonner";
-import { Plus, X, Save, Loader2, Building2, Users, Sparkles, Copy, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, X, Save, Loader2, Building2, Users, Sparkles, Copy, ChevronDown, ChevronUp, Ticket } from "lucide-react";
 
 const emptyForm = {
   name: "", city: "", state: "", board: "",
@@ -20,6 +20,38 @@ export default function UniversitySchools() {
   const [saving, setSaving] = useState(false);
   const [justCreated, setJustCreated] = useState(null);
   const [expanded, setExpanded] = useState({});
+  const [inviteFor, setInviteFor] = useState(null); // school object
+  const [inviteRole, setInviteRole] = useState("principal");
+  const [inviteData, setInviteData] = useState(null);
+  const [inviteBusy, setInviteBusy] = useState(false);
+
+  const inviteBase = `${window.location.origin}/invite/`;
+
+  const openInvite = (school) => {
+    setInviteFor(school);
+    setInviteData(null);
+    setInviteRole("principal");
+  };
+
+  const generateInvite = async () => {
+    if (!inviteFor) return;
+    setInviteBusy(true);
+    try {
+      const { data } = await api.post("/university/invites", { school_id: inviteFor.id, role: inviteRole });
+      setInviteData(data);
+      toast.success("Invite code generated");
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail) || "Could not create invite");
+    } finally {
+      setInviteBusy(false);
+    }
+  };
+
+  const copyInvite = () => {
+    if (!inviteData) return;
+    navigator.clipboard.writeText(`${inviteBase}${inviteData.code}`);
+    toast.success("Invite link copied");
+  };
 
   const load = () => {
     setLoading(true);
@@ -124,12 +156,21 @@ export default function UniversitySchools() {
                       <div className="font-display text-2xl font-extrabold mt-1">{s.assessment_count}</div>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setExpanded((p) => ({ ...p, [s.id]: !p[s.id] }))}
-                    className="mt-4 text-sm font-semibold flex items-center gap-1"
-                  >
-                    Staff accounts {expanded[s.id] ? <ChevronUp size={14} strokeWidth={2.5} /> : <ChevronDown size={14} strokeWidth={2.5} />}
-                  </button>
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => setExpanded((p) => ({ ...p, [s.id]: !p[s.id] }))}
+                      className="text-sm font-semibold flex items-center gap-1"
+                    >
+                      Staff accounts {expanded[s.id] ? <ChevronUp size={14} strokeWidth={2.5} /> : <ChevronDown size={14} strokeWidth={2.5} />}
+                    </button>
+                    <button
+                      data-testid={`univ-invite-btn-${s.id}`}
+                      onClick={() => openInvite(s)}
+                      className="btn-brutal bg-[#FEF08A] px-3 py-1.5 text-xs flex items-center gap-1 ml-auto"
+                    >
+                      <Ticket size={12} strokeWidth={2.5} /> Generate invite
+                    </button>
+                  </div>
                   {expanded[s.id] && (
                     <ul className="mt-2 space-y-1 text-xs">
                       {(s.staff || []).length === 0 ? <li className="text-[#52525B]">No staff accounts yet.</li> :
@@ -147,6 +188,65 @@ export default function UniversitySchools() {
           )}
         </div>
       </div>
+
+      {/* Invite modal */}
+      {inviteFor && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setInviteFor(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="card-brutal bg-white p-6 md:p-8 max-w-lg w-full">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="label-mono flex items-center gap-1"><Ticket size={12} strokeWidth={2.5} /> One-tap invite</span>
+                <h2 className="font-display text-2xl font-extrabold mt-1">Invite staff to {inviteFor.name}</h2>
+              </div>
+              <button onClick={() => setInviteFor(null)} data-testid="invite-modal-close" className="p-2 border-2 border-[#0A0A0A] rounded-lg"><X size={16} strokeWidth={2.5} /></button>
+            </div>
+
+            <div className="mt-5 flex gap-2">
+              {["principal", "counselor"].map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  data-testid={`invite-role-${r}`}
+                  onClick={() => { setInviteRole(r); setInviteData(null); }}
+                  className={`px-3 py-1.5 border-2 border-[#0A0A0A] rounded-full text-sm font-semibold capitalize ${inviteRole === r ? "bg-[#0A0A0A] text-white" : "bg-white"}`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+
+            {!inviteData ? (
+              <button
+                onClick={generateInvite}
+                disabled={inviteBusy}
+                data-testid="invite-generate-btn"
+                className="btn-brutal bg-blue-600 text-white w-full py-3 mt-6 flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {inviteBusy ? <Loader2 className="animate-spin" size={16} /> : <Ticket size={16} strokeWidth={2.5} />}
+                Generate one-tap invite
+              </button>
+            ) : (
+              <div className="mt-6">
+                <div className="border-2 border-[#0A0A0A] rounded-xl p-4 bg-[#FEF08A]">
+                  <div className="label-mono">Share this link with the {inviteData.role}</div>
+                  <div data-testid="invite-link" className="font-mono text-sm mt-2 break-all">
+                    {inviteBase}{inviteData.code}
+                  </div>
+                  <div className="mt-4 flex gap-2">
+                    <button onClick={copyInvite} className="btn-brutal bg-white px-3 py-2 text-sm flex items-center gap-1">
+                      <Copy size={14} strokeWidth={2.5} /> Copy link
+                    </button>
+                    <span className="label-mono self-center">Expires {new Date(inviteData.expires_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                <p className="text-xs text-[#52525B] mt-3">
+                  No email or password needed — the invitee opens the link, sets their own password, and lands directly in their role's dashboard.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Modal */}
       {showForm && (
@@ -202,16 +302,6 @@ export default function UniversitySchools() {
                 <button type="button" onClick={() => setShowForm(false)} className="btn-brutal bg-white px-5 py-2">Cancel</button>
                 <button type="submit" data-testid="univ-form-save" disabled={saving} className="btn-brutal bg-blue-600 text-white px-5 py-2 flex items-center gap-2">
                   {saving ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} strokeWidth={2.5} />} Add School
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-size={14} strokeWidth={2.5} />} Add School
                 </button>
               </div>
             </form>

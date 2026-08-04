@@ -3,7 +3,9 @@ import Navbar from "@/components/Navbar";
 import { Sparkles, Brain, Target, LineChart, ArrowRight, GraduationCap, ShieldCheck } from "lucide-react";
 
 const HERO_IMG =
-  "https://images.unsplash.com/photo-1571643829392-9a9a826a2a21?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzV8MHwxfHNlYXJjaHwzfHxoaWdoJTIwc2Nob29sJTIwc3R1ZGVudCUyMHN0dWR5aW5nJTIwc21pbGluZ3xlbnwwfHx8fDE3ODUzMTI5MjB8MA&ixlib=rb-4.1.0&q=85";
+  "https://images.unsplash.com/photo-1509062522246-3755977927d7?crop=entropy&cs=srgb&fm=jpg&w=1200&q=85";
+const NEP_IMG =
+  "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?crop=entropy&cs=srgb&fm=jpg&w=1000&q=85";
 
 const CATEGORIES = [
   { key: "personality", label: "Personality", color: "bg-[#FEF08A]", icon: Sparkles, desc: "Big-Five inspired traits" },
@@ -49,12 +51,71 @@ export default function Landing() {
           <div className="card-brutal p-3 rotate-[2deg] hover:rotate-0 transition-transform">
             <img
               src={HERO_IMG}
-              alt="Student smiling"
+              alt="Indian school students in classroom"
               className="w-full h-[380px] object-cover rounded-xl border-2 border-[#0A0A0A]"
+              onError={(e) => { e.currentTarget.src = "https://images.pexels.com/photos/8617969/pexels-photo-8617969.jpeg?auto=compress&cs=tinysrgb&w=1200"; }}
             />
             <div className="mt-4 px-2 pb-2 flex items-center justify-between">
-              <span className="label-mono">Real students. Real futures.</span>
-              <span className="label-mono bg-[#E9D5FF] px-2 py-1 rounded-full border-2 border-[#0A0A0A]">v1.0</span>
+              <span className="label-mono">Built for India · CBSE, ICSE, PSEB &amp; State boards</span>
+              <span className="label-mono bg-[#E9D5FF] px-2 py-1 rounded-full border-2 border-[#0A0A0A]">NEP 2020</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* NEP 2020 explainer */}
+      <section id="nep" className="border-y-2 border-[#0A0A0A] bg-[#FEF08A]">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-16 grid grid-cols-1 md:grid-cols-12 gap-8">
+          <div className="md:col-span-7">
+            <span className="label-mono inline-flex items-center gap-2 bg-white border-2 border-[#0A0A0A] rounded-full px-3 py-1">
+              Why this matters · NEP 2020
+            </span>
+            <h2 className="mt-5 font-display text-3xl md:text-5xl font-extrabold tracking-tighter leading-[1.05]">
+              India's National Education Policy asks<br />every student to <span className="bg-[#A7F3D0] px-2 border-2 border-[#0A0A0A] rounded-xl inline-block rotate-[-1deg]">choose their own path</span>
+            </h2>
+            <p className="mt-6 text-base md:text-lg leading-relaxed max-w-2xl">
+              NEP 2020 breaks the old rigid Science / Commerce / Arts divide. Students can now mix subjects across streams,
+              take vocational courses from Grade 6, and choose electives that match their strengths and interests. But that
+              freedom needs a compass — and that's exactly what Pathfinder AI provides.
+            </p>
+
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+                { t: "Multidisciplinary Learning (§ 4.9)", d: "Any student, any stream — subjects chosen on ability, not label." },
+                { t: "Vocational Exposure by Grade 6", d: "Every child gets a real-world skill / internship taste." },
+                { t: "Choice-Based Subjects in 11-12", d: "Mix Physics with Fine Arts, Biology with Entrepreneurship." },
+                { t: "Multiple Entry / Exit Points", d: "No single 'wrong' decision — degrees have on-ramps at every stage." },
+              ].map((p, i) => (
+                <div key={i} className="border-2 border-[#0A0A0A] rounded-xl p-4 bg-white">
+                  <div className="label-mono">{p.t}</div>
+                  <p className="text-sm mt-2 text-[#0A0A0A]/80">{p.d}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-8 card-brutal p-5 bg-[#A7F3D0]">
+              <span className="label-mono">How Pathfinder AI helps</span>
+              <p className="text-sm mt-2 leading-relaxed">
+                Our AI reads a student's psychometric, aptitude, interest (RIASEC) and mental-ability signals — then produces
+                a report tailored to their <b>class</b>, <b>board</b> (CBSE / ICSE / PSEB / State / IB), and <b>NEP stage</b>.
+                No child gets pushed into a single stream. Instead they see 3 best-fit careers, a subject mix that opens doors,
+                and a Now-Next-Beyond roadmap they can actually follow — with counsellors, parents and principals in the loop.
+              </p>
+            </div>
+          </div>
+
+          <div className="md:col-span-5">
+            <div className="card-brutal p-3 rotate-[-2deg] hover:rotate-0 transition-transform bg-white">
+              <img
+                src={NEP_IMG}
+                alt="Indian students in a school library"
+                className="w-full h-[420px] object-cover rounded-xl border-2 border-[#0A0A0A]"
+                onError={(e) => { e.currentTarget.src = "https://images.pexels.com/photos/8617731/pexels-photo-8617731.jpeg?auto=compress&cs=tinysrgb&w=1200"; }}
+              />
+              <div className="mt-4 px-2 pb-2 flex items-center justify-between">
+                <span className="label-mono">Aligned with the MoE, GoI</span>
+                <span className="label-mono bg-[#FEF08A] px-2 py-1 rounded-full border-2 border-[#0A0A0A]">2020</span>
+              </div>
             </div>
           </div>
         </div>

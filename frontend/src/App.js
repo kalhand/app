@@ -28,6 +28,8 @@ import SchoolWishlists from "@/pages/SchoolWishlists";
 import UniversityDashboard from "@/pages/UniversityDashboard";
 import UniversitySchools from "@/pages/UniversitySchools";
 import UniversityStudents from "@/pages/UniversityStudents";
+import UniversityBranding from "@/pages/UniversityBranding";
+import InviteAccept from "@/pages/InviteAccept";
 import CareerCompare from "@/pages/CareerCompare";
 
 function App() {
@@ -41,6 +43,7 @@ function App() {
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/invite/:code" element={<InviteAccept />} />
 
               {/* Student */}
               <Route path="/dashboard" element={<ProtectedRoute roles={["student"]}><Dashboard /></ProtectedRoute>} />
@@ -79,6 +82,7 @@ function App() {
               <Route path="/university" element={<ProtectedRoute roles={["university"]}><UniversityDashboard /></ProtectedRoute>} />
               <Route path="/university/schools" element={<ProtectedRoute roles={["university"]}><UniversitySchools /></ProtectedRoute>} />
               <Route path="/university/students" element={<ProtectedRoute roles={["university"]}><UniversityStudents /></ProtectedRoute>} />
+              <Route path="/university/branding" element={<ProtectedRoute roles={["university"]}><UniversityBranding /></ProtectedRoute>} />
             </Routes>
           </BrowserRouter>
         </AuthProvider>

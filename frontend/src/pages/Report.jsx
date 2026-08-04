@@ -18,9 +18,18 @@ const ALIGNMENT_STYLE = {
 export default function Report() {
   const { id } = useParams();
   const [data, setData] = useState(null);
+  const [brand, setBrand] = useState(null);
 
   useEffect(() => {
-    api.get(`/results/${id}`).then((r) => setData(r.data));
+    api.get(`/results/${id}`).then((r) => {
+      setData(r.data);
+      const school = r.data?.school_name;
+      if (school) {
+        api.get(`/branding/for-school/${encodeURIComponent(school)}`)
+          .then((b) => setBrand(b.data))
+          .catch(() => {});
+      }
+    });
   }, [id]);
 
   if (!data) {
@@ -43,6 +52,17 @@ export default function Report() {
     <div className="min-h-screen">
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-10">
+        {/* University Branding banner */}
+        {brand?.university_name && (
+          <div data-testid="brand-banner" className="mb-6 card-brutal p-4 flex flex-wrap items-center gap-3" style={{ borderLeftWidth: 8, borderLeftColor: brand.headline_color || "#0A0A0A" }}>
+            {brand.logo_url && <img src={brand.logo_url} alt="logo" className="h-8 max-w-[80px] object-contain" onError={(e) => { e.currentTarget.style.display = "none"; }} />}
+            <div>
+              <div className="label-mono">Powered by</div>
+              <div className="font-display font-extrabold" style={{ color: brand.headline_color || "#0A0A0A" }}>{brand.university_name}</div>
+            </div>
+            {brand.tagline && <span className="ml-auto text-sm italic text-[#52525B]">"{brand.tagline}"</span>}
+          </div>
+        )}
         {/* Header */}
         <div className="print:hidden mb-4 flex justify-end gap-2">
           <Link to={`/certificate/${id}`} data-testid="view-certificate-btn" className="btn-brutal bg-[#FEF08A] px-4 py-2 text-sm flex items-center gap-2">

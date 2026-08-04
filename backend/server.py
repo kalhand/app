@@ -249,6 +249,7 @@ async def seed_defaults():
     await db.results.create_index("id", unique=True)
     await db.wishlists.create_index([("user_id", 1), ("career_title", 1)], unique=True)
     await db.schools.create_index("name", unique=True)
+    await db.school_invites.create_index("code", unique=True)
 
     for u in DEMO_USERS:
         existing = await db.users.find_one({"email": u["email"]})
@@ -273,17 +274,22 @@ async def seed_defaults():
         await db.users.insert_one(doc)
         logger.info(f"Seeded {u['role']}: {u['email']}")
 
-    # Seed default school registry entry
-    if not await db.schools.find_one({"name": "Demo Public School"}):
+    # Seed default school registry entry - link to university seed for branding demo
+    univ_seed = await db.users.find_one({"email": "university@pathfinder.ai"})
+    univ_id = univ_seed["id"] if univ_seed else "system"
+    existing_school = await db.schools.find_one({"name": "Demo Public School"})
+    if not existing_school:
         await db.schools.insert_one({
             "id": str(uuid.uuid4()),
             "name": "Demo Public School",
             "city": "Chandigarh",
             "state": "Punjab",
             "board": "CBSE",
-            "created_by": "system",
+            "created_by": univ_id,
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
+    elif existing_school.get("created_by") in (None, "system"):
+        await db.schools.update_one({"name": "Demo Public School"}, {"$set": {"created_by": univ_id}})
 
     # Upsert each DEFAULT question by text so newly-added senior questions land on next boot
     for q in DEFAULT_QUESTIONS:
@@ -1205,6 +1211,169 @@ async def university_school_detail(school_name: str,
         "top_careers": [{"title": t, "count": c} for t, c in top_career_list],
         "recent_results": results[:20],
     }
+
+
+# --------- University Branding ---------
+class BrandingInput(BaseModel):
+    logo_url: Optional[str] = None
+    headline_color: Optional[str] = None  # hex like "#FEF08A"
+    tagline: Optional[str] = None
+
+    @field_validator("logo_url", "headline_color", "tagline", mode="before")
+    @classmethod
+    def blank_to_none(cls, v):
+        return None if v == "" else v
+
+
+@api.get("/university/branding")
+async def get_my_branding(user: dict = Depends(require_roles("university"))):
+    b = user.get("branding") or {}
+    return {"logo_url": b.get("logo_url"), "headline_color": b.get("headline_color"), "tagline": b.get("tagline")}
+
+
+@api.put("/university/branding")
+async def set_branding(payload: BrandingInput, user: dict = Depends(require_roles("university"))):
+    updates = {k: v for k, v in payload.model_dump().items() if v is not None}
+    branding = {**(user.get("branding") or {}), **updates}
+    await db.users.update_one({"id": user["id"]}, {"$set": {"branding": branding}})
+    return {"ok": True, "branding": branding}
+
+
+@api.get("/branding/for-school/{school_name}")
+async def branding_for_school(school_name: str, user: dict = Depends(get_current_user)):
+    """Public-ish: any authenticated user can fetch branding for their school (so student reports render it)."""
+    school = await db.schools.find_one({"name": school_name})
+    if not school or not school.get("created_by") or school["created_by"] == "system":
+        return {"logo_url": None, "headline_color": None, "tagline": None, "university_name": None}
+    univ = await db.users.find_one({"id": school["created_by"], "role": "university"}, {"_id": 0, "password_hash": 0})
+    if not univ:
+        return {"logo_url": None, "headline_color": None, "tagline": None, "university_name": None}
+    b = univ.get("branding") or {}
+    return {
+        "logo_url": b.get("logo_url"),
+        "headline_color": b.get("headline_color"),
+        "tagline": b.get("tagline"),
+        "university_name": univ.get("organization_name") or univ.get("name"),
+    }
+
+
+# --------- School Invite Codes ---------
+class InviteCreateInput(BaseModel):
+    school_id: str
+    role: Literal["principal", "counselor"] = "principal"
+    expires_hours: Optional[int] = 168  # default 7 days
+
+
+def _rand_code(n=8):
+    import secrets, string
+    alphabet = string.ascii_uppercase + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(n))
+
+
+@api.post("/university/invites")
+async def create_invite(payload: InviteCreateInput, user: dict = Depends(require_roles("university"))):
+    school = await db.schools.find_one({"id": payload.school_id})
+    if not school:
+        raise HTTPException(404, "School not found")
+    code = _rand_code(8)
+    while await db.school_invites.find_one({"code": code}):
+        code = _rand_code(8)
+    expires_at = (datetime.now(timezone.utc) + timedelta(hours=payload.expires_hours or 168)).isoformat()
+    doc = {
+        "id": str(uuid.uuid4()),
+        "code": code,
+        "school_id": school["id"],
+        "school_name": school["name"],
+        "role": payload.role,
+        "created_by": user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "expires_at": expires_at,
+        "used": False,
+        "used_by": None,
+    }
+    await db.school_invites.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+@api.get("/university/invites")
+async def list_invites(school_id: Optional[str] = None, user: dict = Depends(require_roles("university"))):
+    q = {"created_by": user["id"]}
+    if school_id:
+        q["school_id"] = school_id
+    items = await db.school_invites.find(q, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return items
+
+
+@api.delete("/university/invites/{code}")
+async def revoke_invite(code: str, user: dict = Depends(require_roles("university"))):
+    res = await db.school_invites.delete_one({"code": code.upper(), "created_by": user["id"]})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Invite not found")
+    return {"ok": True}
+
+
+@api.get("/invite/{code}")
+async def get_invite(code: str):
+    invite = await db.school_invites.find_one({"code": code.upper()}, {"_id": 0})
+    if not invite:
+        raise HTTPException(404, "Invalid invite code")
+    if invite.get("used"):
+        raise HTTPException(400, "This invite has already been used")
+    try:
+        if datetime.fromisoformat(invite["expires_at"]) < datetime.now(timezone.utc):
+            raise HTTPException(400, "This invite has expired")
+    except HTTPException:
+        raise
+    except Exception:
+        pass
+    return {"school_name": invite["school_name"], "role": invite["role"], "expires_at": invite["expires_at"]}
+
+
+class InviteAcceptInput(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+
+
+@api.post("/invite/{code}/accept")
+async def accept_invite(code: str, payload: InviteAcceptInput):
+    invite = await db.school_invites.find_one({"code": code.upper()})
+    if not invite:
+        raise HTTPException(404, "Invalid invite code")
+    if invite.get("used"):
+        raise HTTPException(400, "This invite has already been used")
+    try:
+        if datetime.fromisoformat(invite["expires_at"]) < datetime.now(timezone.utc):
+            raise HTTPException(400, "This invite has expired")
+    except HTTPException:
+        raise
+    except Exception:
+        pass
+
+    email = payload.email.lower()
+    if await db.users.find_one({"email": email}):
+        raise HTTPException(400, "Email already registered — please log in instead")
+
+    user_id = str(uuid.uuid4())
+    doc = {
+        "id": user_id,
+        "name": payload.name,
+        "email": email,
+        "role": invite["role"],
+        "school_name": invite["school_name"],
+        "linked_student_emails": [],
+        "password_hash": hash_password(payload.password),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.users.insert_one(doc)
+    await db.school_invites.update_one(
+        {"code": invite["code"]},
+        {"$set": {"used": True, "used_by": user_id, "used_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    token = create_token(user_id, email, invite["role"])
+    doc.pop("password_hash", None); doc.pop("_id", None)
+    return {"token": token, "user": doc}
 
 
 @api.get("/")
