@@ -15,7 +15,7 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, field_validator
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
@@ -988,6 +988,13 @@ class SchoolCreateInput(BaseModel):
     counselor_name: Optional[str] = None
     counselor_email: Optional[EmailStr] = None
     counselor_password: Optional[str] = None
+
+    @field_validator("principal_email", "counselor_email", mode="before")
+    @classmethod
+    def blank_to_none(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
 
 
 @api.get("/university/schools")

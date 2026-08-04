@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import api from "@/lib/api";
+import { formatApiErrorDetail } from "@/lib/api";
 import { BOARDS } from "@/lib/nep";
 import { toast } from "sonner";
 import { Plus, X, Save, Loader2, Building2, Users, Sparkles, Copy, ChevronDown, ChevronUp } from "lucide-react";
@@ -201,6 +202,16 @@ export default function UniversitySchools() {
                 <button type="button" onClick={() => setShowForm(false)} className="btn-brutal bg-white px-5 py-2">Cancel</button>
                 <button type="submit" data-testid="univ-form-save" disabled={saving} className="btn-brutal bg-blue-600 text-white px-5 py-2 flex items-center gap-2">
                   {saving ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} strokeWidth={2.5} />} Add School
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+size={14} strokeWidth={2.5} />} Add School
                 </button>
               </div>
             </form>
