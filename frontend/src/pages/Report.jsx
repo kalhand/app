@@ -44,7 +44,10 @@ export default function Report() {
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-10">
         {/* Header */}
-        <div className="print:hidden mb-4 flex justify-end">
+        <div className="print:hidden mb-4 flex justify-end gap-2">
+          <Link to={`/certificate/${id}`} data-testid="view-certificate-btn" className="btn-brutal bg-[#FEF08A] px-4 py-2 text-sm flex items-center gap-2">
+            <Award size={16} strokeWidth={2.5} /> View Certificate
+          </Link>
           <button data-testid="print-report-btn" onClick={() => window.print()} className="btn-brutal bg-[#0A0A0A] text-white px-4 py-2 text-sm flex items-center gap-2">
             <Printer size={16} strokeWidth={2.5} /> Save / Print PDF
           </button>

@@ -22,6 +22,7 @@ export default function Login() {
       const user = await login(email, password);
       toast.success(`Welcome back, ${user.name}!`);
       const dest = user.role === "admin" ? "/admin"
+        : user.role === "university" ? "/university"
         : user.role === "parent" ? "/parent"
         : user.role === "counselor" ? "/counselor"
         : user.role === "principal" ? "/principal"

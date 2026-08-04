@@ -38,7 +38,7 @@ logger = logging.getLogger("pathfinder")
 
 # --------- Constants ---------
 BOARDS = ["CBSE", "ICSE", "PSEB", "State Board", "IB", "IGCSE", "Other"]
-ROLES = ["student", "parent", "counselor", "principal", "admin"]
+ROLES = ["student", "parent", "counselor", "principal", "admin", "university"]
 
 
 def nep_stage_for_grade(grade: Optional[str]) -> dict:
@@ -229,6 +229,8 @@ DEFAULT_QUESTIONS = [
 
 DEMO_USERS = [
     {"role": "admin", "name": "Platform Admin", "email": "admin@pathfinder.ai", "password": "Admin@123"},
+    {"role": "university", "name": "Panjab University Board", "email": "university@pathfinder.ai", "password": "University@123",
+     "organization_name": "Panjab University Career Cell"},
     {"role": "student", "name": "Aarav Sharma", "email": "student@pathfinder.ai", "password": "Student@123",
      "grade": "10", "education_board": "CBSE", "school_name": "Demo Public School"},
     {"role": "parent", "name": "Priya Sharma", "email": "parent@pathfinder.ai", "password": "Parent@123",
@@ -245,6 +247,8 @@ async def seed_defaults():
     await db.users.create_index("id", unique=True)
     await db.questions.create_index("id", unique=True)
     await db.results.create_index("id", unique=True)
+    await db.wishlists.create_index([("user_id", 1), ("career_title", 1)], unique=True)
+    await db.schools.create_index("name", unique=True)
 
     for u in DEMO_USERS:
         existing = await db.users.find_one({"email": u["email"]})
@@ -262,11 +266,24 @@ async def seed_defaults():
             "grade": u.get("grade"),
             "education_board": u.get("education_board"),
             "school_name": u.get("school_name"),
+            "organization_name": u.get("organization_name"),
             "linked_student_emails": [e.lower() for e in u.get("linked_student_emails", [])],
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         await db.users.insert_one(doc)
         logger.info(f"Seeded {u['role']}: {u['email']}")
+
+    # Seed default school registry entry
+    if not await db.schools.find_one({"name": "Demo Public School"}):
+        await db.schools.insert_one({
+            "id": str(uuid.uuid4()),
+            "name": "Demo Public School",
+            "city": "Chandigarh",
+            "state": "Punjab",
+            "board": "CBSE",
+            "created_by": "system",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
 
     # Upsert each DEFAULT question by text so newly-added senior questions land on next boot
     for q in DEFAULT_QUESTIONS:
@@ -843,6 +860,346 @@ Generate the JSON career deep-dive now."""
         raise HTTPException(500, "AI response could not be parsed")
 
 
+# --------- Career AI Chat (per career deep-dive) ---------
+class ChatTurn(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class CareerChatInput(BaseModel):
+    career_title: str
+    question: str
+    history: Optional[List[ChatTurn]] = None
+    language: Optional[str] = "en"
+
+
+CHAT_SYSTEM_PROMPT = """You are Pathfinder AI Career Counselor — a warm, concise, and honest career advisor for Indian school students (grades 8-12), aligned with NEP 2020.
+
+Rules:
+- Answer ONLY questions related to the career being discussed, adjacent careers, subjects, colleges, entrance exams, skills, or the student's day-to-day path.
+- If asked something unrelated (jokes, homework help, personal advice), gently steer back to careers.
+- Keep answers under 120 words. Use short paragraphs or bullet lists.
+- Language codes: "en" English, "hi" Hindi (हिंदी), "pa" Punjabi (ਪੰਜਾਬੀ). Always reply fully in the requested language.
+- Be honest about difficulty, competition, and realistic salary expectations in India.
+- Never invent institute names or entrance exam names — stick to widely-known ones (JEE, NEET, CLAT, CUET, IITs, IIMs, AIIMS, NIFT, etc.)."""
+
+
+@api.post("/careers/chat")
+async def career_chat(payload: CareerChatInput, user: dict = Depends(get_current_user)):
+    lang = (payload.language or "en").lower()
+    lang_name = {"en": "English", "hi": "Hindi (हिंदी)", "pa": "Punjabi (ਪੰਜਾਬੀ)"}.get(lang, "English")
+    # Build history-aware prompt
+    context = f"""Context career: {payload.career_title}
+Student: {user.get('name')} · Grade {user.get('grade') or 'N/A'} · Board {user.get('education_board') or 'N/A'}
+Answer language: {lang_name}
+"""
+    history_text = ""
+    if payload.history:
+        for turn in payload.history[-6:]:  # keep last 6 turns
+            history_text += f"\n{turn.role.upper()}: {turn.content}"
+    user_msg = f"{context}{history_text}\n\nUSER: {payload.question}\n\nRespond as ASSISTANT in {lang_name}:"
+
+    chat = LlmChat(
+        api_key=EMERGENT_LLM_KEY,
+        session_id=f"chat-{user['id']}-{payload.career_title[:20]}",
+        system_message=CHAT_SYSTEM_PROMPT,
+    ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+
+    resp = await chat.send_message(UserMessage(text=user_msg))
+    text = resp.strip() if isinstance(resp, str) else str(resp)
+    return {"reply": text}
+
+
+# --------- Career Wishlist ---------
+class WishlistItemInput(BaseModel):
+    career_title: str
+    note: Optional[str] = None
+
+
+@api.get("/wishlist/me")
+async def wishlist_me(user: dict = Depends(require_roles("student"))):
+    items = await db.wishlists.find({"user_id": user["id"]}, {"_id": 0}).sort("added_at", -1).to_list(200)
+    return items
+
+
+@api.post("/wishlist")
+async def add_wishlist(payload: WishlistItemInput, user: dict = Depends(require_roles("student"))):
+    title = payload.career_title.strip()
+    if not title:
+        raise HTTPException(400, "career_title required")
+    existing = await db.wishlists.find_one({"user_id": user["id"], "career_title": title})
+    if existing:
+        if payload.note is not None:
+            await db.wishlists.update_one({"id": existing["id"]}, {"$set": {"note": payload.note}})
+        return {"ok": True, "already_added": True}
+    doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "user_name": user["name"],
+        "user_email": user["email"],
+        "school_name": user.get("school_name"),
+        "grade": user.get("grade"),
+        "career_title": title,
+        "note": payload.note,
+        "added_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.wishlists.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+@api.delete("/wishlist/{title}")
+async def remove_wishlist(title: str, user: dict = Depends(require_roles("student"))):
+    res = await db.wishlists.delete_one({"user_id": user["id"], "career_title": title})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Not in wishlist")
+    return {"ok": True}
+
+
+@api.get("/school/wishlists")
+async def school_wishlists(user: dict = Depends(require_roles("counselor", "principal"))):
+    school = user.get("school_name") or ""
+    items = await db.wishlists.find({"school_name": school}, {"_id": 0}).sort("added_at", -1).to_list(2000)
+    # Group by student
+    by_student = {}
+    for w in items:
+        key = w["user_id"]
+        if key not in by_student:
+            by_student[key] = {
+                "user_id": w["user_id"], "user_name": w["user_name"],
+                "user_email": w["user_email"], "grade": w.get("grade"),
+                "careers": [],
+            }
+        by_student[key]["careers"].append({
+            "career_title": w["career_title"], "note": w.get("note"), "added_at": w["added_at"],
+        })
+    return list(by_student.values())
+
+
+# --------- University (super) ---------
+class SchoolCreateInput(BaseModel):
+    name: str
+    city: Optional[str] = None
+    state: Optional[str] = None
+    board: Optional[str] = None
+    principal_name: Optional[str] = None
+    principal_email: Optional[EmailStr] = None
+    principal_password: Optional[str] = None
+    counselor_name: Optional[str] = None
+    counselor_email: Optional[EmailStr] = None
+    counselor_password: Optional[str] = None
+
+
+@api.get("/university/schools")
+async def university_schools(user: dict = Depends(require_roles("university"))):
+    schools = await db.schools.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    # Attach live stats per school
+    for s in schools:
+        s["student_count"] = await db.users.count_documents({"role": "student", "school_name": s["name"]})
+        s["assessment_count"] = await db.results.count_documents({"school_name": s["name"]})
+        # Also list attached principal/counselor accounts
+        staff = await db.users.find(
+            {"school_name": s["name"], "role": {"$in": ["principal", "counselor"]}},
+            {"_id": 0, "password_hash": 0},
+        ).to_list(50)
+        s["staff"] = staff
+    return schools
+
+
+@api.post("/university/schools")
+async def university_create_school(payload: SchoolCreateInput,
+                                    user: dict = Depends(require_roles("university"))):
+    name = payload.name.strip()
+    if not name:
+        raise HTTPException(400, "School name required")
+    if payload.board and payload.board not in BOARDS:
+        raise HTTPException(400, f"Invalid board. Allowed: {BOARDS}")
+    if await db.schools.find_one({"name": name}):
+        raise HTTPException(400, "A school with that name already exists")
+
+    school_doc = {
+        "id": str(uuid.uuid4()),
+        "name": name,
+        "city": payload.city,
+        "state": payload.state,
+        "board": payload.board,
+        "created_by": user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.schools.insert_one(school_doc)
+
+    created_accounts = []
+
+    async def _maybe_create_staff(role_name, name_val, email_val, password_val):
+        if not email_val:
+            return None
+        email_l = email_val.lower()
+        if await db.users.find_one({"email": email_l}):
+            return {"email": email_l, "status": "existing"}
+        pw = password_val or f"Pathfinder@{uuid.uuid4().hex[:6]}"
+        doc = {
+            "id": str(uuid.uuid4()),
+            "name": name_val or role_name.title(),
+            "email": email_l,
+            "role": role_name,
+            "school_name": name,
+            "linked_student_emails": [],
+            "password_hash": hash_password(pw),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.users.insert_one(doc)
+        return {"email": email_l, "role": role_name, "temp_password": pw, "status": "created"}
+
+    p = await _maybe_create_staff("principal", payload.principal_name, payload.principal_email, payload.principal_password)
+    c = await _maybe_create_staff("counselor", payload.counselor_name, payload.counselor_email, payload.counselor_password)
+    if p:
+        created_accounts.append(p)
+    if c:
+        created_accounts.append(c)
+
+    school_doc.pop("_id", None)
+    return {"school": school_doc, "accounts": created_accounts}
+
+
+@api.delete("/university/schools/{school_id}")
+async def university_delete_school(school_id: str, user: dict = Depends(require_roles("university"))):
+    school = await db.schools.find_one({"id": school_id})
+    if not school:
+        raise HTTPException(404, "School not found")
+    await db.schools.delete_one({"id": school_id})
+    return {"ok": True, "note": "School registry entry removed. User accounts with this school_name are untouched."}
+
+
+def _first_stream(stream_text: str) -> str:
+    return (stream_text or "Other").split("—")[0].strip()
+
+
+@api.get("/university/overview")
+async def university_overview(user: dict = Depends(require_roles("university"))):
+    schools = await db.schools.find({}, {"_id": 0}).to_list(1000)
+    total_students = await db.users.count_documents({"role": "student"})
+    total_assessments = await db.results.count_documents({})
+    # Global stream + top career distribution
+    all_results = await db.results.find({}, {"_id": 0}).to_list(5000)
+    stream_dist = {}
+    top_careers = {}
+    board_dist = {}
+    align_dist = {"strong": 0, "moderate": 0, "needs_reflection": 0}
+    for r in all_results:
+        rep = r.get("ai_report") or {}
+        s = _first_stream(rep.get("recommended_stream"))
+        stream_dist[s] = stream_dist.get(s, 0) + 1
+        for c in (rep.get("top_careers") or [])[:1]:
+            t = c.get("title") or "Other"
+            top_careers[t] = top_careers.get(t, 0) + 1
+        a = rep.get("path_alignment") or "moderate"
+        if a in align_dist:
+            align_dist[a] += 1
+        b = r.get("education_board") or "Unknown"
+        board_dist[b] = board_dist.get(b, 0) + 1
+    top_career_list = sorted(top_careers.items(), key=lambda x: -x[1])[:10]
+    return {
+        "school_count": len(schools),
+        "student_count": total_students,
+        "assessment_count": total_assessments,
+        "stream_distribution": stream_dist,
+        "board_distribution": board_dist,
+        "alignment_distribution": align_dist,
+        "top_careers": [{"title": t, "count": c} for t, c in top_career_list],
+    }
+
+
+@api.get("/university/students")
+async def university_students(field: Optional[str] = None,
+                              stream: Optional[str] = None,
+                              school: Optional[str] = None,
+                              grade: Optional[str] = None,
+                              user: dict = Depends(require_roles("university"))):
+    """List students; when filter fields are provided, filter by their LATEST result's suggested career/stream."""
+    results = await db.results.find({}, {"_id": 0}).sort("created_at", -1).to_list(5000)
+    latest_by_user = {}
+    for r in results:
+        if r["user_id"] not in latest_by_user:
+            latest_by_user[r["user_id"]] = r
+
+    students = await db.users.find({"role": "student"}, {"_id": 0, "password_hash": 0}).to_list(5000)
+    out = []
+    for s in students:
+        if school and s.get("school_name") != school:
+            continue
+        if grade and str(s.get("grade") or "") != str(grade):
+            continue
+        latest = latest_by_user.get(s["id"])
+        top_career = None
+        recommended_stream = None
+        if latest:
+            rep = latest.get("ai_report") or {}
+            recommended_stream = _first_stream(rep.get("recommended_stream"))
+            tc = (rep.get("top_careers") or [])
+            if tc:
+                top_career = tc[0].get("title")
+        # Field filter — matches recommended stream or top career (case-insensitive substring)
+        if field:
+            hay = f"{top_career or ''} {recommended_stream or ''}".lower()
+            if field.lower() not in hay:
+                continue
+        if stream and recommended_stream != stream:
+            continue
+        out.append({
+            "id": s["id"], "name": s["name"], "email": s["email"],
+            "grade": s.get("grade"), "education_board": s.get("education_board"),
+            "school_name": s.get("school_name"),
+            "top_career": top_career,
+            "recommended_stream": recommended_stream,
+            "latest_result_id": latest["id"] if latest else None,
+            "latest_at": latest["created_at"] if latest else None,
+        })
+    return out
+
+
+@api.get("/university/schools/{school_name}/overview")
+async def university_school_detail(school_name: str,
+                                   user: dict = Depends(require_roles("university"))):
+    """Deep-dive stats for a single school (mirrors /school/overview but for university)."""
+    students = await db.users.find(
+        {"role": "student", "school_name": school_name},
+        {"_id": 0, "password_hash": 0},
+    ).to_list(2000)
+    results = await db.results.find({"school_name": school_name}, {"_id": 0}).sort("created_at", -1).to_list(2000)
+    stream_dist = {}
+    align_dist = {"strong": 0, "moderate": 0, "needs_reflection": 0}
+    top_careers = {}
+    board_dist = {}
+    grade_dist = {}
+    for r in results:
+        rep = r.get("ai_report") or {}
+        s = _first_stream(rep.get("recommended_stream"))
+        stream_dist[s] = stream_dist.get(s, 0) + 1
+        a = rep.get("path_alignment") or "moderate"
+        if a in align_dist:
+            align_dist[a] += 1
+        for c in (rep.get("top_careers") or [])[:1]:
+            t = c.get("title") or "Other"
+            top_careers[t] = top_careers.get(t, 0) + 1
+    for s in students:
+        b = s.get("education_board") or "Unknown"
+        board_dist[b] = board_dist.get(b, 0) + 1
+        g = s.get("grade") or "Unknown"
+        grade_dist[str(g)] = grade_dist.get(str(g), 0) + 1
+    top_career_list = sorted(top_careers.items(), key=lambda x: -x[1])[:10]
+    return {
+        "school_name": school_name,
+        "student_count": len(students),
+        "assessment_count": len(results),
+        "stream_distribution": stream_dist,
+        "alignment_distribution": align_dist,
+        "board_distribution": board_dist,
+        "grade_distribution": grade_dist,
+        "top_careers": [{"title": t, "count": c} for t, c in top_career_list],
+        "recent_results": results[:20],
+    }
+
+
 @api.get("/")
 async def root():
     return {"message": "Pathfinder AI API", "status": "ok"}
@@ -1044,3 +1401,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# 

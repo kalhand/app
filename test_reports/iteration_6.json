@@ -1,0 +1,67 @@
+{
+  "summary": "Iteration 6 (University super-role + Compare Two Careers). Backend: 23/23 tests pass — university login/RBAC, overview shape, schools CRUD (create + duplicate 400 + delete keeps user accounts), students shape/field/school filters. Frontend: university login lands on /university; dashboard renders 4 stat cards, both bar charts, top-careers list (univ-career-N) and quick actions; nav links present; RBAC works (university /dashboard → /university; parent /compare and /university → /parent); Compare flow (wishlist-compare-btn → /compare → select two → compare-go → /compare/:a/:b) renders compare-left-title + compare-right-title correctly. CRITICAL: School create form crashes React and 422s the API when optional email fields are left blank.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/university/schools",
+        "issue": "Pydantic model uses Optional[EmailStr] for principal_email/counselor_email. If the client sends empty string (\"\") — which the frontend does by default — Pydantic v2 rejects with 422. Should either accept empty string as None or convert '' -> None with a validator.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "UniversitySchools.jsx (save handler)",
+        "issue": "On API error, calls toast.error(e.response?.data?.detail || 'Failed…'). When backend returns 422 the detail is an array of validation-error OBJECTS, which is then rendered as a React child, throwing 'Objects are not valid as a React child (found: object with keys {type, loc, msg, input, ctx})' and showing the red runtime-error overlay. Must coerce detail to string (e.g., typeof detail === 'string' ? detail : JSON.stringify(detail) or detail?.[0]?.msg).",
+        "selector": "[data-testid=univ-form-save]",
+        "priority": "HIGH"
+      },
+      {
+        "component": "UniversitySchools.jsx form state",
+        "issue": "Empty-string values for principal_email / counselor_email are POSTed even when user leaves them blank. Should strip empty strings before POST (send undefined/null) so Optional[EmailStr] passes.",
+        "selector": "[data-testid=univ-form-save]",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "University → create school with only name+principal_email",
+        "issue": "Blocked by the two bugs above; no school card appears and app throws runtime error overlay. Acceptance criterion from review request fails.",
+        "affected_selectors": ["[data-testid=univ-new-school-btn]", "[data-testid=univ-form-save]"]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "UniversityDashboard chart container",
+        "issues": ["Recharts warning: 'The width(-1) and height(-1) of chart should be greater than 0' (repeated). Add explicit min-height/min-width on ResponsiveContainer wrapper to avoid warnings and potential empty-state layout jumps."]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration6.py",
+    "/app/test_reports/pytest/iter6.xml"
+  ],
+  "action_items": [
+    "In /app/backend/server.py SchoolCreateInput, add a validator to convert '' → None for principal_email/counselor_email (or accept plain str and validate manually).",
+    "In /app/frontend/src/pages/UniversitySchools.jsx save(): (a) strip empty-string email fields before posting; (b) coerce e.response?.data?.detail to string before passing to toast.error to avoid React crash on 422/objects.",
+    "Consider adding min-height to Recharts ResponsiveContainer in UniversityDashboard.jsx to silence width/height=-1 warnings."
+  ],
+  "critical_code_review_comments": [
+    "Frontend blindly renders backend error detail — always coerce to string.",
+    "Empty-string EmailStr trap will affect any future forms; consider a shared helper cleanPayload() that strips '' values.",
+    "server.py has grown large; university endpoints could live in a routers/ module.",
+    "GET /api/wishlist returns 405 (only /api/wishlist/me exists) — students’ REST expectations differ from other resources. Consider aliasing GET /api/wishlist → /me for consistency."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration6.py"
+  ],
+  "success_rate": {"backend": "100% (23/23)", "frontend": "~85% (blocked on school-create form)"},
+  "test_credentials": "Used seed accounts from /app/memory/test_credentials.md (university, student, parent, admin, counselor, principal).",
+  "seed_data_creation": "Created a TEST_ prefixed school then deleted it via API; ensured student wishlist contains at least 'Software Engineer' + 'Data Scientist' for compare test. Frontend compare invoked ONCE per iteration budget note.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend university endpoints are fully green. Focus retest on UniversitySchools.jsx create modal — after main agent fixes empty-string email + toast render, verify: (1) only name+principal_email creates a school card + creds banner, (2) duplicate name shows readable toast (not raw object), (3) no React runtime error overlay. Compare flow uses AI (2 calls) — do NOT retest unless changed. Prior iteration5 report json was missing on disk; only iter5.xml present.",
+  "rca of the issue": "Frontend POSTs { principal_email: '', counselor_email: '' } → Pydantic v2 EmailStr rejects '' → 422 with detail=[{type,loc,msg,input,ctx}]. save() catch does toast.error(detail). react-hot-toast passes children to React → 'Objects are not valid as a React child'. Fix on either side individually mitigates, but both should be fixed defensively."
+}

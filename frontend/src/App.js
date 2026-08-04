@@ -22,6 +22,13 @@ import BulkOnboard from "@/pages/BulkOnboard";
 import CareerExplorer from "@/pages/CareerExplorer";
 import CareerExplorerRoute from "@/pages/CareerExplorerRoute";
 import ClassReport from "@/pages/ClassReport";
+import Certificate from "@/pages/Certificate";
+import Wishlist from "@/pages/Wishlist";
+import SchoolWishlists from "@/pages/SchoolWishlists";
+import UniversityDashboard from "@/pages/UniversityDashboard";
+import UniversitySchools from "@/pages/UniversitySchools";
+import UniversityStudents from "@/pages/UniversityStudents";
+import CareerCompare from "@/pages/CareerCompare";
 
 function App() {
   return (
@@ -40,7 +47,11 @@ function App() {
               <Route path="/assessment" element={<ProtectedRoute roles={["student"]}><Assessment /></ProtectedRoute>} />
               <Route path="/report/:id" element={<ProtectedRoute><Report /></ProtectedRoute>} />
               <Route path="/vocational" element={<ProtectedRoute roles={["student"]}><Vocational /></ProtectedRoute>} />
-              <Route path="/career/:title" element={<ProtectedRoute><CareerExplorer /></ProtectedRoute>} />
+              <Route path="/career/:title" element={<ProtectedRoute><CareerExplorerRoute /></ProtectedRoute>} />
+              <Route path="/wishlist" element={<ProtectedRoute roles={["student"]}><Wishlist /></ProtectedRoute>} />
+              <Route path="/compare" element={<ProtectedRoute roles={["student"]}><CareerCompare /></ProtectedRoute>} />
+              <Route path="/compare/:a/:b" element={<ProtectedRoute roles={["student"]}><CareerCompare /></ProtectedRoute>} />
+              <Route path="/certificate/:id" element={<ProtectedRoute><Certificate /></ProtectedRoute>} />
 
               {/* Parent */}
               <Route path="/parent" element={<ProtectedRoute roles={["parent"]}><ParentDashboard /></ProtectedRoute>} />
@@ -50,17 +61,24 @@ function App() {
               <Route path="/counselor/students" element={<ProtectedRoute roles={["counselor"]}><SchoolStudents variant="counselor" /></ProtectedRoute>} />
               <Route path="/counselor/bulk" element={<ProtectedRoute roles={["counselor"]}><BulkOnboard /></ProtectedRoute>} />
               <Route path="/counselor/class-report" element={<ProtectedRoute roles={["counselor"]}><ClassReport /></ProtectedRoute>} />
+              <Route path="/counselor/wishlists" element={<ProtectedRoute roles={["counselor"]}><SchoolWishlists /></ProtectedRoute>} />
 
               {/* Principal */}
               <Route path="/principal" element={<ProtectedRoute roles={["principal"]}><SchoolDashboard variant="principal" /></ProtectedRoute>} />
               <Route path="/principal/students" element={<ProtectedRoute roles={["principal"]}><SchoolStudents variant="principal" /></ProtectedRoute>} />
               <Route path="/principal/bulk" element={<ProtectedRoute roles={["principal"]}><BulkOnboard /></ProtectedRoute>} />
               <Route path="/principal/class-report" element={<ProtectedRoute roles={["principal"]}><ClassReport /></ProtectedRoute>} />
+              <Route path="/principal/wishlists" element={<ProtectedRoute roles={["principal"]}><SchoolWishlists /></ProtectedRoute>} />
 
               {/* Admin */}
               <Route path="/admin" element={<ProtectedRoute roles={["admin"]}><AdminDashboard /></ProtectedRoute>} />
               <Route path="/admin/questions" element={<ProtectedRoute roles={["admin"]}><AdminQuestions /></ProtectedRoute>} />
               <Route path="/admin/results" element={<ProtectedRoute roles={["admin"]}><AdminResults /></ProtectedRoute>} />
+
+              {/* University (super) */}
+              <Route path="/university" element={<ProtectedRoute roles={["university"]}><UniversityDashboard /></ProtectedRoute>} />
+              <Route path="/university/schools" element={<ProtectedRoute roles={["university"]}><UniversitySchools /></ProtectedRoute>} />
+              <Route path="/university/students" element={<ProtectedRoute roles={["university"]}><UniversityStudents /></ProtectedRoute>} />
             </Routes>
           </BrowserRouter>
         </AuthProvider>

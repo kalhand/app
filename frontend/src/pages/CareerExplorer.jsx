@@ -4,7 +4,9 @@ import Navbar from "@/components/Navbar";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useLang } from "@/context/LanguageContext";
-import { Loader2, Briefcase, GraduationCap, DollarSign, TrendingUp, LightbulbIcon, ArrowRight, BookOpen, Building, MapPin } from "lucide-react";
+import CareerChat from "@/components/CareerChat";
+import { toast } from "sonner";
+import { Loader2, Briefcase, GraduationCap, DollarSign, TrendingUp, LightbulbIcon, ArrowRight, BookOpen, Building, MapPin, Bookmark, BookmarkCheck } from "lucide-react";
 
 export default function CareerExplorer() {
   const { title } = useParams();
@@ -14,6 +16,38 @@ export default function CareerExplorer() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const decodedTitle = decodeURIComponent(title);
+  const isStudent = user?.role === "student";
+
+  useEffect(() => {
+    if (!isStudent) return;
+    api.get("/wishlist/me").then((r) => {
+      setSaved(r.data.some((w) => w.career_title === decodedTitle));
+    }).catch(() => {});
+  }, [decodedTitle, isStudent]);
+
+  const toggleSave = async () => {
+    if (!isStudent) return;
+    setSaving(true);
+    try {
+      if (saved) {
+        await api.delete(`/wishlist/${encodeURIComponent(decodedTitle)}`);
+        setSaved(false);
+        toast.success("Removed from wishlist");
+      } else {
+        await api.post("/wishlist", { career_title: decodedTitle });
+        setSaved(true);
+        toast.success("Saved to wishlist");
+      }
+    } catch (e) {
+      toast.error("Could not update wishlist");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const stream = search.get("stream");
 
@@ -55,10 +89,25 @@ export default function CareerExplorer() {
     <div className="min-h-screen">
       <Navbar />
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-10">
-        <span className="label-mono flex items-center gap-2"><Briefcase size={14} strokeWidth={2.5} /> Career deep-dive</span>
-        <h1 data-testid="career-title" className="font-display text-4xl md:text-6xl font-extrabold tracking-tighter mt-3">
-          {data.title}
-        </h1>
+        <div className="flex items-start justify-between flex-wrap gap-4">
+          <div>
+            <span className="label-mono flex items-center gap-2"><Briefcase size={14} strokeWidth={2.5} /> Career deep-dive</span>
+            <h1 data-testid="career-title" className="font-display text-4xl md:text-6xl font-extrabold tracking-tighter mt-3">
+              {data.title}
+            </h1>
+          </div>
+          {isStudent && (
+            <button
+              onClick={toggleSave}
+              disabled={saving}
+              data-testid="career-save-btn"
+              className={`btn-brutal px-4 py-3 flex items-center gap-2 ${saved ? "bg-[#FEF08A]" : "bg-white"}`}
+            >
+              {saved ? <BookmarkCheck size={18} strokeWidth={2.5} /> : <Bookmark size={18} strokeWidth={2.5} />}
+              <span className="text-sm font-semibold">{saved ? "Saved" : "Save"}</span>
+            </button>
+          )}
+        </div>
         <p className="text-lg mt-4 max-w-3xl">{data.one_liner}</p>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mt-10">
@@ -188,6 +237,9 @@ export default function CareerExplorer() {
           </Link>
         </div>
       </div>
+
+      {/* AI Chat drawer */}
+      <CareerChat careerTitle={data.title} />
     </div>
   );
 }

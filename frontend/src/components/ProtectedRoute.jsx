@@ -15,6 +15,7 @@ export default function ProtectedRoute({ children, roles = null, adminOnly = fal
   if (allowed && !allowed.includes(user.role)) {
     // Send to their home
     const home = user.role === "admin" ? "/admin"
+      : user.role === "university" ? "/university"
       : user.role === "parent" ? "/parent"
       : user.role === "counselor" ? "/counselor"
       : user.role === "principal" ? "/principal"
