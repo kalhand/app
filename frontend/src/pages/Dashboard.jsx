@@ -61,6 +61,16 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Vocational shortcut */}
+        <Link to="/vocational" data-testid="dashboard-vocational-card" className="card-brutal p-6 mt-6 flex items-center justify-between bg-[#E9D5FF] hover:-translate-y-1 transition-transform">
+          <div>
+            <span className="label-mono">NEP § 4.9 · Vocational exposure</span>
+            <h3 className="font-display text-lg md:text-xl font-extrabold tracking-tight mt-1">Explore internships & skill courses for Class {user?.grade || "—"}</h3>
+            <p className="text-sm mt-1 text-[#52525B]">Curated bootcamps, workshops, and community internships aligned to NEP 2020.</p>
+          </div>
+          <span className="hidden md:inline btn-brutal bg-white px-4 py-2 text-sm">Open →</span>
+        </Link>
+
         <div className="mt-14">
           <div className="flex items-center justify-between mb-6">
             <div>

@@ -1,0 +1,42 @@
+{
+  "summary": "Iteration 3 testing (vocational, cohort comparison, bulk onboarding). Backend: 12/12 pytest passed on new module (test_iteration3.py). Frontend: all data-testids present and flows work — dashboard-vocational-card, /vocational 10 cards with tag filter (Tech -> 2 cards), print-report-btn, bulk upload for principal and counselor (2 created, then 2 skipped on resubmit), RBAC redirects working (parent -> /vocational and /principal/bulk both bounce to /parent). One critical bug found & fixed: Report.jsx imported CohortComparison but never rendered it, so cohort-section did not appear. Added <CohortComparison resultId={id} /> section and re-verified cohort-section/cohort-school/cohort-grade/cohort-national all render.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Report.jsx", "issue": "CohortComparison was imported but never rendered — cohort-section absent from report page. Testing agent added the JSX section; please verify placement fits design.", "selector": "[data-testid='cohort-section']", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration3.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/iter3.xml"
+  ],
+  "action_items": [
+    "Review the added <CohortComparison /> block placement in /app/frontend/src/pages/Report.jsx (currently right before encouragement/back-dashboard). Adjust ordering/styling if needed."
+  ],
+  "critical_code_review_comments": [
+    "server.py now 900 lines — split threshold breached; move cohort/vocational/bulk into routers/ subpackage.",
+    "CORS middleware still registered AFTER include_router (unchanged from iter 2).",
+    "/api/vocational uses substring match for stream (`stream.lower() in s.lower() or vice-versa`) — 'PC' would match 'Science (PCM)' and 'Science (PCB)' both; consider exact-tag match.",
+    "Bulk endpoint accepts admin but sets school='' for admin — creates students with school_name=None; if desired, allow admin to pass explicit school_name in payload.",
+    "Bulk endpoint returns temp_password in plaintext (expected for onboarding) but has no rate limit; large payloads could tie up event loop — consider capping students list length (e.g., 500).",
+    "CohortComparison fetches /cohort/:id and silently returns null on error — should show a user-visible message if a counselor loads a stale/forbidden result.",
+    "_percentile treats ties as 'below only if strictly less' — students tied at top with peers get lower percentile than expected; using midrank would be fairer."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration3.py",
+    "/app/frontend/src/pages/Report.jsx"
+  ],
+  "success_rate": {"backend": "100% (12/12)", "frontend": "100% after fix"},
+  "test_credentials": "See /app/memory/test_credentials.md — all 5 roles verified.",
+  "seed_data_creation": "Bulk tests create TEST_prin_* and TEST_cou_* students under Demo Public School; UI test creates uibulk_<ts>_1/2@example.com. Small volume, safe to leave.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration 3 module test file at /app/backend/tests/test_iteration3.py covers vocational (count=10 for grade 10, ?grade=8 filter, 401 no-auth), cohort (student own 200, other student 403, parent linked 200, same-school counselor 200, different-school counselor 403, response shape), and bulk (principal creates 2/errors 1/invalid-board, resubmit 2 skipped, auto school assignment verified by re-login, counselor works, student/parent 403). Regression file backend_test.py from iter 2 still applies. Report.jsx now renders CohortComparison — if main agent moves it, keep resultId prop = URL :id.",
+  "rca of the issue": "Bug: Report page missing cohort comparison. Root cause: Report.jsx imported CohortComparison component at line 7 but the JSX render body never instantiated <CohortComparison />. As a result the cohort-section testid was never in DOM even though /api/cohort/{id} was fully implemented and returning correct data. Mitigation: added <section className='mb-14'><CohortComparison resultId={id} /></section> before the encouragement block. Verified cohort-school / cohort-grade / cohort-national now render for the seed student's report."
+}

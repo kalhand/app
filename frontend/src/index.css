@@ -84,3 +84,21 @@ h1, h2, h3, h4, h5, h6, .font-display {
         column-gap: inherit; row-gap: inherit; gap: inherit;
     }
 }
+
+/* Print / PDF-export styles for AI report */
+@media print {
+    header, nav, [data-testid="app-navbar"], .print\:hidden {
+        display: none !important;
+    }
+    body {
+        background: #fff !important;
+    }
+    .card-brutal {
+        box-shadow: none !important;
+        border-color: #0A0A0A !important;
+        break-inside: avoid;
+    }
+    a { color: inherit !important; text-decoration: none !important; }
+    .max-w-7xl { max-width: 100% !important; }
+    section, .card-brutal { page-break-inside: avoid; }
+}

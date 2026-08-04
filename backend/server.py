@@ -696,6 +696,193 @@ async def school_results(user: dict = Depends(require_roles("counselor", "princi
     return await _school_results(school)
 
 
+# --------- Cohort Comparison ---------
+def _percentile(sorted_vals: List[float], v: float) -> int:
+    if not sorted_vals:
+        return 0
+    below = sum(1 for x in sorted_vals if x < v)
+    return round((below / len(sorted_vals)) * 100)
+
+
+@api.get("/cohort/{result_id}")
+async def cohort_comparison(result_id: str, user: dict = Depends(get_current_user)):
+    doc = await db.results.find_one({"id": result_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Result not found")
+    # Same authz as /results/{rid}
+    role = user["role"]
+    allowed = (role == "admin"
+               or (role == "student" and doc["user_id"] == user["id"])
+               or (role in ("counselor", "principal") and doc.get("school_name") == user.get("school_name")))
+    if role == "parent":
+        student = await db.users.find_one({"id": doc["user_id"]})
+        if student and student.get("email") in (user.get("linked_student_emails") or []):
+            allowed = True
+    if not allowed:
+        raise HTTPException(403, "Forbidden")
+
+    school = doc.get("school_name")
+    grade = doc.get("grade")
+
+    def ratio(s):
+        a = s.get("aptitude") or {}; m = s.get("mental_ability") or {}
+        at = (a.get("correct", 0) / a.get("total", 1)) if a.get("total") else 0
+        mt = (m.get("correct", 0) / m.get("total", 1)) if m.get("total") else 0
+        return {"aptitude": at, "mental": mt, "combined": (at + mt) / 2}
+
+    def collect(query):
+        return db.results.find(query, {"_id": 0}).to_list(5000)
+
+    school_results = await collect({"school_name": school}) if school else []
+    grade_results = await collect({"grade": grade}) if grade else []
+    all_results = await collect({})
+
+    r_self = ratio(doc.get("scores") or {})
+
+    def stats(cohort):
+        scores = [ratio(r.get("scores") or {}) for r in cohort if r.get("id") != doc["id"]]
+        if not scores:
+            return {"size": 0, "aptitude_pct": None, "mental_pct": None, "combined_pct": None}
+        return {
+            "size": len(scores),
+            "aptitude_pct": _percentile(sorted([s["aptitude"] for s in scores]), r_self["aptitude"]),
+            "mental_pct": _percentile(sorted([s["mental"] for s in scores]), r_self["mental"]),
+            "combined_pct": _percentile(sorted([s["combined"] for s in scores]), r_self["combined"]),
+        }
+
+    # Also: distribution of recommended streams within school/grade
+    def stream_dist(cohort):
+        d = {}
+        for r in cohort:
+            s = ((r.get("ai_report") or {}).get("recommended_stream") or "Other").split("—")[0].strip()
+            d[s] = d.get(s, 0) + 1
+        return d
+
+    return {
+        "student": {"name": doc["user_name"], "grade": grade, "school": school},
+        "self_scores": {
+            "aptitude": r_self["aptitude"], "mental": r_self["mental"], "combined": r_self["combined"],
+        },
+        "school": stats(school_results),
+        "grade": stats(grade_results),
+        "national": stats(all_results),
+        "stream_distribution_school": stream_dist(school_results),
+        "stream_distribution_grade": stream_dist(grade_results),
+    }
+
+
+# --------- Vocational Opportunities (NEP § 4.9) ---------
+VOCATIONAL_OPPS = [
+    {"title": "Coding & App Development Bootcamp", "type": "course", "duration": "8 weeks",
+     "grades": [8,9,10,11,12], "streams": ["Science (PCM)", "Commerce"],
+     "provider": "NCERT/CBSE Skill Elective + free MOOCs (SWAYAM)",
+     "url": "https://swayam.gov.in/", "tag": "Tech"},
+    {"title": "Robotics & IoT Workshop", "type": "workshop", "duration": "1 month",
+     "grades": [9,10,11,12], "streams": ["Science (PCM)"],
+     "provider": "Atal Tinkering Labs (AIM, NITI Aayog)",
+     "url": "https://aim.gov.in/atl.php", "tag": "STEM"},
+    {"title": "Financial Literacy for Teens", "type": "course", "duration": "4 weeks",
+     "grades": [9,10,11,12], "streams": ["Commerce", "Humanities/Arts"],
+     "provider": "SEBI + NCFE certified modules",
+     "url": "https://www.ncfe.org.in/", "tag": "Finance"},
+    {"title": "Design Thinking & UX Basics", "type": "course", "duration": "6 weeks",
+     "grades": [9,10,11,12], "streams": ["Humanities/Arts", "Science (PCM)"],
+     "provider": "Coursera / IDF free tier",
+     "url": "https://www.interaction-design.org/", "tag": "Creative"},
+    {"title": "Community Health Volunteering", "type": "internship", "duration": "20 hours",
+     "grades": [9,10,11,12], "streams": ["Science (PCB)", "Humanities/Arts"],
+     "provider": "Local NGOs / Red Cross Youth",
+     "url": "https://indianredcross.org/", "tag": "Social"},
+    {"title": "Journalism & Podcasting Lab", "type": "workshop", "duration": "2 weeks",
+     "grades": [8,9,10,11,12], "streams": ["Humanities/Arts", "Commerce"],
+     "provider": "School magazine + free tools (Anchor, Audacity)",
+     "url": "https://anchor.fm/", "tag": "Media"},
+    {"title": "Agri-Tech & Sustainability Project", "type": "project", "duration": "6 weeks",
+     "grades": [8,9,10], "streams": ["Science (PCB)", "Vocational"],
+     "provider": "KVK (Krishi Vigyan Kendra) partnerships",
+     "url": "https://kvk.icar.gov.in/", "tag": "Sustainability"},
+    {"title": "Retail & Small-Business Internship", "type": "internship", "duration": "2 weeks",
+     "grades": [9,10,11,12], "streams": ["Commerce", "Vocational"],
+     "provider": "Local retail / MSME shadow-day",
+     "url": "https://msme.gov.in/", "tag": "Business"},
+    {"title": "AI for Everyone (Beginner)", "type": "course", "duration": "4 weeks",
+     "grades": [9,10,11,12], "streams": ["Science (PCM)", "Commerce", "Humanities/Arts"],
+     "provider": "Coursera - DeepLearning.AI (free audit)",
+     "url": "https://www.coursera.org/learn/ai-for-everyone", "tag": "Tech"},
+    {"title": "Hospital Shadow Program", "type": "internship", "duration": "1 week",
+     "grades": [10,11,12], "streams": ["Science (PCB)"],
+     "provider": "Local hospitals with student outreach",
+     "url": "https://mohfw.gov.in/", "tag": "Health"},
+]
+
+
+@api.get("/vocational")
+async def vocational_opportunities(grade: Optional[str] = None, stream: Optional[str] = None,
+                                    user: dict = Depends(get_current_user)):
+    """NEP § 4.9 vocational exposure listings. Filter by grade & stream."""
+    g = None
+    try:
+        g = int(str(grade or user.get("grade") or "").strip())
+    except Exception:
+        g = None
+    items = []
+    for o in VOCATIONAL_OPPS:
+        if g is not None and g not in o["grades"]:
+            continue
+        if stream and not any(stream.lower() in s.lower() or s.lower() in stream.lower() for s in o["streams"]):
+            continue
+        items.append(o)
+    return {"grade": g, "stream": stream, "count": len(items), "opportunities": items}
+
+
+# --------- Bulk Student Onboarding (Principal) ---------
+class BulkStudentRow(BaseModel):
+    name: str
+    email: EmailStr
+    password: Optional[str] = None
+    grade: Optional[str] = None
+    education_board: Optional[str] = None
+
+
+class BulkStudentsInput(BaseModel):
+    students: List[BulkStudentRow]
+
+
+@api.post("/principal/students/bulk")
+async def bulk_create_students(payload: BulkStudentsInput,
+                                user: dict = Depends(require_roles("principal", "counselor", "admin"))):
+    school = user.get("school_name") or "" if user["role"] != "admin" else ""
+    created, skipped, errors = [], [], []
+    for row in payload.students:
+        try:
+            email = row.email.lower()
+            if await db.users.find_one({"email": email}):
+                skipped.append({"email": email, "reason": "already exists"})
+                continue
+            if row.education_board and row.education_board not in BOARDS:
+                errors.append({"email": email, "reason": f"invalid board: {row.education_board}"})
+                continue
+            pw = row.password or f"Pathfinder@{uuid.uuid4().hex[:6]}"
+            doc = {
+                "id": str(uuid.uuid4()),
+                "name": row.name,
+                "email": email,
+                "role": "student",
+                "grade": row.grade,
+                "education_board": row.education_board,
+                "school_name": school or None,
+                "linked_student_emails": [],
+                "password_hash": hash_password(pw),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+            await db.users.insert_one(doc)
+            created.append({"email": email, "name": row.name, "temp_password": pw})
+        except Exception as e:
+            errors.append({"email": row.email, "reason": str(e)})
+    return {"created": created, "skipped": skipped, "errors": errors,
+            "summary": {"created": len(created), "skipped": len(skipped), "errors": len(errors)}}
+
+
 @api.get("/")
 async def root():
     return {"message": "Pathfinder AI API", "status": "ok"}

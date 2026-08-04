@@ -16,6 +16,8 @@ import AdminResults from "@/pages/AdminResults";
 import ParentDashboard from "@/pages/ParentDashboard";
 import SchoolDashboard from "@/pages/SchoolDashboard";
 import SchoolStudents from "@/pages/SchoolStudents";
+import Vocational from "@/pages/Vocational";
+import BulkOnboard from "@/pages/BulkOnboard";
 
 function App() {
   return (
@@ -32,6 +34,7 @@ function App() {
             <Route path="/dashboard" element={<ProtectedRoute roles={["student"]}><Dashboard /></ProtectedRoute>} />
             <Route path="/assessment" element={<ProtectedRoute roles={["student"]}><Assessment /></ProtectedRoute>} />
             <Route path="/report/:id" element={<ProtectedRoute><Report /></ProtectedRoute>} />
+            <Route path="/vocational" element={<ProtectedRoute roles={["student"]}><Vocational /></ProtectedRoute>} />
 
             {/* Parent */}
             <Route path="/parent" element={<ProtectedRoute roles={["parent"]}><ParentDashboard /></ProtectedRoute>} />
@@ -39,10 +42,12 @@ function App() {
             {/* Counselor */}
             <Route path="/counselor" element={<ProtectedRoute roles={["counselor"]}><SchoolDashboard variant="counselor" /></ProtectedRoute>} />
             <Route path="/counselor/students" element={<ProtectedRoute roles={["counselor"]}><SchoolStudents variant="counselor" /></ProtectedRoute>} />
+            <Route path="/counselor/bulk" element={<ProtectedRoute roles={["counselor"]}><BulkOnboard /></ProtectedRoute>} />
 
             {/* Principal */}
             <Route path="/principal" element={<ProtectedRoute roles={["principal"]}><SchoolDashboard variant="principal" /></ProtectedRoute>} />
             <Route path="/principal/students" element={<ProtectedRoute roles={["principal"]}><SchoolStudents variant="principal" /></ProtectedRoute>} />
+            <Route path="/principal/bulk" element={<ProtectedRoute roles={["principal"]}><BulkOnboard /></ProtectedRoute>} />
 
             {/* Admin */}
             <Route path="/admin" element={<ProtectedRoute roles={["admin"]}><AdminDashboard /></ProtectedRoute>} />

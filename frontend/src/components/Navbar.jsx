@@ -6,15 +6,18 @@ const ROLE_LINKS = {
   student: [
     { to: "/dashboard", label: "Dashboard", id: "nav-dashboard" },
     { to: "/assessment", label: "Assessment", id: "nav-assessment" },
+    { to: "/vocational", label: "Vocational", id: "nav-vocational" },
   ],
   parent: [{ to: "/parent", label: "My Children", id: "nav-parent" }],
   counselor: [
     { to: "/counselor", label: "School Overview", id: "nav-counselor" },
     { to: "/counselor/students", label: "Students", id: "nav-counselor-students" },
+    { to: "/counselor/bulk", label: "Bulk Upload", id: "nav-counselor-bulk" },
   ],
   principal: [
     { to: "/principal", label: "School Dashboard", id: "nav-principal" },
     { to: "/principal/students", label: "Students", id: "nav-principal-students" },
+    { to: "/principal/bulk", label: "Bulk Upload", id: "nav-principal-bulk" },
   ],
   admin: [
     { to: "/admin", label: "Admin", id: "nav-admin" },

@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import api from "@/lib/api";
-import { Sparkles, Award, TrendingUp, Compass, GraduationCap, Route, Loader2 } from "lucide-react";
+import { Sparkles, Award, TrendingUp, Compass, GraduationCap, Route, Loader2, Printer, BarChart3 } from "lucide-react";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
+import CohortComparison from "@/components/CohortComparison";
 
 const AI_IMG =
   "https://images.unsplash.com/photo-1617791160536-598cf32026fb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDZ8MHwxfHNlYXJjaHwyfHxhYnN0cmFjdCUyMGdsb3dpbmclMjBicmFpbiUyMEFJfGVufDB8fHx8MTc4NTMxMjkyMXww&ixlib=rb-4.1.0&q=85";
@@ -43,6 +44,11 @@ export default function Report() {
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-10">
         {/* Header */}
+        <div className="print:hidden mb-4 flex justify-end">
+          <button data-testid="print-report-btn" onClick={() => window.print()} className="btn-brutal bg-[#0A0A0A] text-white px-4 py-2 text-sm flex items-center gap-2">
+            <Printer size={16} strokeWidth={2.5} /> Save / Print PDF
+          </button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8">
           <div className="md:col-span-8 card-brutal p-8">
             <span className="label-mono flex items-center gap-2"><Sparkles size={14} strokeWidth={2.5} /> AI Career Report</span>
@@ -183,6 +189,11 @@ export default function Report() {
               </div>
             ))}
           </div>
+        </section>
+
+        {/* Cohort Comparison */}
+        <section className="mb-14">
+          <CohortComparison resultId={id} />
         </section>
 
         {r.encouragement && (
