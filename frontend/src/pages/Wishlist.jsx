@@ -5,8 +5,11 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { Bookmark, Trash2, ArrowRight, Sparkles } from "lucide-react";
 import { format } from "date-fns";
+import { useLang } from "@/context/LanguageContext";
+import { localizeCareer } from "@/lib/careerNames";
 
 export default function Wishlist() {
+  const { lang } = useLang();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -71,7 +74,7 @@ export default function Wishlist() {
                     <Trash2 size={14} strokeWidth={2.5} />
                   </button>
                 </div>
-                <h3 className="font-display text-xl font-bold mt-3">{w.career_title}</h3>
+                <h3 className="font-display text-xl font-bold mt-3">{localizeCareer(w.career_title, lang)}</h3>
                 {w.note && <p className="text-sm mt-2 text-[#52525B]">{w.note}</p>}
                 <div className="text-xs text-[#52525B] mt-3">Saved {format(new Date(w.added_at), "dd MMM yyyy")}</div>
                 <Link

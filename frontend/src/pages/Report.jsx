@@ -2,9 +2,13 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import api from "@/lib/api";
-import { Sparkles, Award, TrendingUp, Compass, GraduationCap, Route, Loader2, Printer, BarChart3, ArrowRight as ArrowRightIcon } from "lucide-react";
+import { Sparkles, Award, TrendingUp, Compass, GraduationCap, Route, Loader2, Printer, BarChart3, ArrowRight as ArrowRightIcon, RefreshCw } from "lucide-react";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
 import CohortComparison from "@/components/CohortComparison";
+import { useLang } from "@/context/LanguageContext";
+import { useAuth } from "@/context/AuthContext";
+import { localizeCareer } from "@/lib/careerNames";
+import { toast } from "sonner";
 
 const AI_IMG =
   "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&w=1000&q=85";
@@ -17,8 +21,11 @@ const ALIGNMENT_STYLE = {
 
 export default function Report() {
   const { id } = useParams();
+  const { lang } = useLang();
+  const { user } = useAuth();
   const [data, setData] = useState(null);
   const [brand, setBrand] = useState(null);
+  const [regenerating, setRegenerating] = useState(false);
 
   useEffect(() => {
     api.get(`/results/${id}`).then((r) => {
@@ -31,6 +38,18 @@ export default function Report() {
       }
     });
   }, [id]);
+
+  const regenerate = async () => {
+    if (regenerating) return;
+    setRegenerating(true);
+    try {
+      const { data: fresh } = await api.post(`/results/${id}/regenerate`, { language: lang });
+      setData(fresh);
+      toast.success("Report regenerated in your language");
+    } catch (e) {
+      toast.error("Regeneration failed — please try again");
+    } finally { setRegenerating(false); }
+  };
 
   if (!data) {
     return (
@@ -64,7 +83,18 @@ export default function Report() {
           </div>
         )}
         {/* Header */}
-        <div className="print:hidden mb-4 flex justify-end gap-2">
+        <div className="print:hidden mb-4 flex flex-wrap justify-end gap-2">
+          {user?.role === "student" && data.user_id === user.id && (
+            <button
+              onClick={regenerate}
+              disabled={regenerating}
+              data-testid="regenerate-btn"
+              className="btn-brutal bg-[#A7F3D0] px-4 py-2 text-sm flex items-center gap-2 disabled:opacity-60"
+            >
+              {regenerating ? <Loader2 className="animate-spin" size={14} /> : <RefreshCw size={14} strokeWidth={2.5} />}
+              Regenerate in {lang === "hi" ? "हिंदी" : lang === "pa" ? "ਪੰਜਾਬੀ" : "English"}
+            </button>
+          )}
           <Link to={`/certificate/${id}`} data-testid="view-certificate-btn" className="btn-brutal bg-[#FEF08A] px-4 py-2 text-sm flex items-center gap-2">
             <Award size={16} strokeWidth={2.5} /> View Certificate
           </Link>
@@ -100,7 +130,7 @@ export default function Report() {
                   <Award strokeWidth={2.5} size={26} />
                   <span className="label-mono bg-[#A7F3D0] px-2 py-1 border-2 border-[#0A0A0A] rounded-full">{c.match_percent}%</span>
                 </div>
-                <h3 className="font-display text-xl font-bold mt-3">{c.title}</h3>
+                <h3 className="font-display text-xl font-bold mt-3">{localizeCareer(c.title, lang)}</h3>
                 <p className="text-sm mt-2 text-[#52525B] leading-relaxed">{c.why}</p>
                 {c.typical_subjects?.length > 0 && (
                   <div className="mt-4 flex flex-wrap gap-2">

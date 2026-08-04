@@ -740,7 +740,72 @@ async def get_result(rid: str, user: dict = Depends(get_current_user)):
     raise HTTPException(403, "Forbidden")
 
 
+class RegenerateInput(BaseModel):
+    language: Optional[str] = "en"
+
+
+@api.post("/results/{rid}/regenerate")
+async def regenerate_result(rid: str, payload: RegenerateInput,
+                            user: dict = Depends(require_roles("student"))):
+    doc = await db.results.find_one({"id": rid})
+    if not doc:
+        raise HTTPException(404, "Result not found")
+    if doc["user_id"] != user["id"]:
+        raise HTTPException(403, "Forbidden")
+    scores = doc.get("scores") or {}
+    # Fabricate a user-like context from stored fields
+    ctx = {
+        "name": doc.get("user_name"), "grade": doc.get("grade"),
+        "education_board": doc.get("education_board"), "school_name": doc.get("school_name"),
+    }
+    ai_report = await ai_analyze(ctx, scores, payload.language or "en")
+    await db.results.update_one(
+        {"id": rid},
+        {"$set": {"ai_report": ai_report, "regenerated_at": datetime.now(timezone.utc).isoformat(),
+                  "language": payload.language or "en"}},
+    )
+    doc = await db.results.find_one({"id": rid}, {"_id": 0})
+    return doc
+
+
 # --------- Admin ---------
+class AdminCreateUniversityInput(BaseModel):
+    name: str
+    email: EmailStr
+    password: Optional[str] = None
+    organization_name: Optional[str] = None
+
+
+@api.post("/admin/universities")
+async def admin_create_university(payload: AdminCreateUniversityInput,
+                                   user: dict = Depends(require_roles("admin"))):
+    email = payload.email.lower()
+    if await db.users.find_one({"email": email}):
+        raise HTTPException(400, "Email already registered")
+    pw = payload.password or f"Univ@{uuid.uuid4().hex[:8]}"
+    user_id = str(uuid.uuid4())
+    doc = {
+        "id": user_id,
+        "name": payload.name,
+        "email": email,
+        "role": "university",
+        "organization_name": payload.organization_name or payload.name,
+        "linked_student_emails": [],
+        "password_hash": hash_password(pw),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.users.insert_one(doc)
+    return {"email": email, "temp_password": pw, "organization_name": doc["organization_name"], "id": user_id}
+
+
+@api.get("/admin/universities")
+async def admin_list_universities(user: dict = Depends(require_roles("admin"))):
+    items = await db.users.find({"role": "university"}, {"_id": 0, "password_hash": 0}).sort("created_at", -1).to_list(200)
+    for u in items:
+        u["school_count"] = await db.schools.count_documents({"created_by": u["id"]})
+    return items
+
+
 @api.get("/admin/results")
 async def admin_all_results(user: dict = Depends(require_roles("admin"))):
     items = await db.results.find({}, {"_id": 0}).sort("created_at", -1).to_list(2000)
