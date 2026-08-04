@@ -151,6 +151,7 @@ class AnswerItem(BaseModel):
 
 class AssessmentSubmit(BaseModel):
     answers: List[AnswerItem]
+    language: Optional[str] = "en"
 
 
 class LinkStudentInput(BaseModel):
@@ -458,6 +459,8 @@ AI_SYSTEM_PROMPT = """You are Pathfinder AI, an expert career counselor for Indi
 
 You analyze psychometric, interest (RIASEC), aptitude and mental-ability data and produce a warm, actionable career report that respects the student's education board (CBSE / ICSE / PSEB / State / IB / IGCSE) and NEP stage (Middle Grades 6-8, Secondary Early 9-10, Secondary Senior 11-12).
 
+Language codes: "en" = English, "hi" = Hindi (हिंदी), "pa" = Punjabi (ਪੰਜਾਬੀ). Return ALL string content in the requested language. Keep career titles in English if commonly used (e.g., "Software Engineer") but write reasoning in the target language.
+
 Respond ONLY in strict JSON matching this schema:
 {
   "summary": "2-3 sentence encouraging summary",
@@ -483,12 +486,14 @@ Respond ONLY in strict JSON matching this schema:
 No markdown, no code fences, only raw JSON."""
 
 
-async def ai_analyze(user: dict, scores: dict) -> dict:
+async def ai_analyze(user: dict, scores: dict, language: str = "en") -> dict:
     import json
     nep = nep_stage_for_grade(user.get("grade"))
+    lang_name = {"en": "English", "hi": "Hindi (हिंदी)", "pa": "Punjabi (ਪੰਜਾਬੀ)"}.get(language, "English")
     prompt = f"""Student: {user.get('name')}
 Grade: {user.get('grade') or 'N/A'} | Board: {user.get('education_board') or 'N/A'} | School: {user.get('school_name') or 'N/A'}
 NEP Stage: {nep['stage']} — Focus: {nep['focus']}
+Output language: {lang_name} — write EVERY string in the report (summary, personality_analysis, why, board_notes, roadmap actions, encouragement, etc.) in {lang_name}.
 
 Personality/Interest trait counts:
 {json.dumps(scores['trait_scores'], indent=2)}
@@ -536,7 +541,7 @@ async def submit_assessment(payload: AssessmentSubmit,
     questions = await db.questions.find({"id": {"$in": qids}}).to_list(1000)
     questions_by_id = {q["id"]: q for q in questions}
     scores = compute_scores(questions_by_id, payload.answers)
-    ai_report = await ai_analyze(user, scores)
+    ai_report = await ai_analyze(user, scores, payload.language or "en")
 
     result_id = str(uuid.uuid4())
     nep = nep_stage_for_grade(user.get("grade"))
@@ -694,6 +699,153 @@ async def school_students(user: dict = Depends(require_roles("counselor", "princ
 async def school_results(user: dict = Depends(require_roles("counselor", "principal"))):
     school = user.get("school_name") or ""
     return await _school_results(school)
+
+
+# --------- Class Comparison Report ---------
+@api.get("/school/class-report")
+async def class_report(grade: Optional[str] = None,
+                       user: dict = Depends(require_roles("counselor", "principal"))):
+    school = user.get("school_name") or ""
+    students = await _school_students(school)
+    results = await _school_results(school)
+    if grade:
+        students = [s for s in students if str(s.get("grade") or "") == str(grade)]
+        results = [r for r in results if str(r.get("grade") or "") == str(grade)]
+
+    # Aggregate personality/interest traits
+    trait_totals = {}
+    apt_ratios = []
+    mental_ratios = []
+    stream_dist = {}
+    align_dist = {"strong": 0, "moderate": 0, "needs_reflection": 0}
+    board_dist = {}
+    career_dist = {}
+    needs_attention = []  # students marked needs_reflection
+
+    for r in results:
+        scores = r.get("scores") or {}
+        for trait, v in (scores.get("trait_scores") or {}).items():
+            trait_totals[trait] = trait_totals.get(trait, 0) + v
+        a = scores.get("aptitude") or {}
+        m = scores.get("mental_ability") or {}
+        if a.get("total"):
+            apt_ratios.append(a["correct"] / a["total"])
+        if m.get("total"):
+            mental_ratios.append(m["correct"] / m["total"])
+        rep = r.get("ai_report") or {}
+        stream = (rep.get("recommended_stream") or "Other").split("—")[0].strip()
+        stream_dist[stream] = stream_dist.get(stream, 0) + 1
+        a_key = rep.get("path_alignment") or "moderate"
+        if a_key in align_dist:
+            align_dist[a_key] += 1
+        if a_key == "needs_reflection":
+            needs_attention.append({"name": r["user_name"], "email": r["user_email"], "grade": r.get("grade")})
+        for c in (rep.get("top_careers") or [])[:1]:
+            t = c.get("title") or "Other"
+            career_dist[t] = career_dist.get(t, 0) + 1
+
+    for s in students:
+        b = s.get("education_board") or "Unknown"
+        board_dist[b] = board_dist.get(b, 0) + 1
+
+    def avg(xs):
+        return round(sum(xs) / len(xs), 3) if xs else 0
+
+    return {
+        "school_name": school,
+        "grade": grade,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "student_count": len(students),
+        "assessment_count": len(results),
+        "avg_aptitude": avg(apt_ratios),
+        "avg_mental": avg(mental_ratios),
+        "trait_totals": trait_totals,
+        "stream_distribution": stream_dist,
+        "alignment_distribution": align_dist,
+        "board_distribution": board_dist,
+        "top_careers": [{"title": k, "count": v} for k, v in sorted(career_dist.items(), key=lambda x: -x[1])[:10]],
+        "students_needing_attention": needs_attention,
+    }
+
+
+# --------- Career Explorer Deep-Dive ---------
+class CareerExploreInput(BaseModel):
+    title: str
+    grade: Optional[str] = None
+    education_board: Optional[str] = None
+    language: Optional[str] = "en"
+
+
+CAREER_SYSTEM_PROMPT = """You are Pathfinder AI Career Explorer, an expert Indian career counselor.
+Given a career title and a student's context (grade, education board, language), produce a rich career deep-dive.
+
+Language codes: "en" = English, "hi" = Hindi (हिंदी), "pa" = Punjabi (ਪੰਜਾਬੀ). Return ALL string content in the requested language.
+
+Respond ONLY in strict JSON:
+{
+  "title": "Career Name",
+  "one_liner": "single-line elevator pitch",
+  "day_in_the_life": "150-200 word narrative describing a typical day",
+  "core_skills": ["skill 1", "skill 2", "skill 3", "skill 4", "skill 5"],
+  "key_subjects": ["subject 1", "subject 2", "subject 3"],
+  "recommended_stream": "one of Science (PCM) / Science (PCB) / Commerce / Humanities / Vocational",
+  "india_college_paths": [
+    {"stage": "After Class 10", "options": ["option 1", "option 2"]},
+    {"stage": "After Class 12", "options": ["Bachelors 1", "Bachelors 2", "Bachelors 3"]},
+    {"stage": "After Bachelors", "options": ["Masters/PG 1", "Direct entry route"]}
+  ],
+  "top_indian_institutes": ["Institute 1", "Institute 2", "Institute 3", "Institute 4"],
+  "salary_bands_inr": {
+    "entry_level": "e.g. ₹4-8 LPA",
+    "mid_career": "e.g. ₹12-25 LPA",
+    "senior": "e.g. ₹30-80+ LPA"
+  },
+  "growth_outlook": "1-2 sentences on 5-10 year outlook in India",
+  "adjacent_careers": ["career 1", "career 2", "career 3"],
+  "myths_vs_facts": [
+    {"myth": "...", "fact": "..."},
+    {"myth": "...", "fact": "..."}
+  ],
+  "resources": [
+    {"label": "Resource name", "note": "why it's useful"}
+  ]
+}
+No markdown, no code fences, only raw JSON."""
+
+
+@api.post("/careers/explore")
+async def explore_career(payload: CareerExploreInput, user: dict = Depends(get_current_user)):
+    import json
+    lang = (payload.language or "en").lower()
+    lang_name = {"en": "English", "hi": "Hindi (हिंदी)", "pa": "Punjabi (ਪੰਜਾਬੀ)"}.get(lang, "English")
+    prompt = f"""Career: {payload.title}
+Student grade: {payload.grade or 'N/A'}
+Board: {payload.education_board or 'N/A'}
+Output language: {lang_name} — write EVERY string field in this language.
+
+Generate the JSON career deep-dive now."""
+    chat = LlmChat(
+        api_key=EMERGENT_LLM_KEY,
+        session_id=f"career-{uuid.uuid4()}",
+        system_message=CAREER_SYSTEM_PROMPT,
+    ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+    resp = await chat.send_message(UserMessage(text=prompt))
+    text = resp.strip() if isinstance(resp, str) else str(resp)
+    if text.startswith("```"):
+        text = text.strip("`")
+        if text.lower().startswith("json"):
+            text = text[4:]
+        text = text.strip()
+    try:
+        return json.loads(text)
+    except Exception as e:
+        logger.error(f"Career explore parse failed: {e}; raw: {text[:400]}")
+        raise HTTPException(500, "AI response could not be parsed")
+
+
+@api.get("/")
+async def root():
+    return {"message": "Pathfinder AI API", "status": "ok"}
 
 
 # --------- Cohort Comparison ---------
@@ -881,11 +1033,6 @@ async def bulk_create_students(payload: BulkStudentsInput,
             errors.append({"email": row.email, "reason": str(e)})
     return {"created": created, "skipped": skipped, "errors": errors,
             "summary": {"created": len(created), "skipped": len(skipped), "errors": len(errors)}}
-
-
-@api.get("/")
-async def root():
-    return {"message": "Pathfinder AI API", "status": "ok"}
 
 
 app.include_router(api)

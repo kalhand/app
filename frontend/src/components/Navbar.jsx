@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import LanguageSelector from "@/components/LanguageSelector";
 import { Compass, LogOut } from "lucide-react";
 
 const ROLE_LINKS = {
@@ -12,11 +13,13 @@ const ROLE_LINKS = {
   counselor: [
     { to: "/counselor", label: "School Overview", id: "nav-counselor" },
     { to: "/counselor/students", label: "Students", id: "nav-counselor-students" },
+    { to: "/counselor/class-report", label: "Class Report", id: "nav-counselor-class-report" },
     { to: "/counselor/bulk", label: "Bulk Upload", id: "nav-counselor-bulk" },
   ],
   principal: [
     { to: "/principal", label: "School Dashboard", id: "nav-principal" },
     { to: "/principal/students", label: "Students", id: "nav-principal-students" },
+    { to: "/principal/class-report", label: "Class Report", id: "nav-principal-class-report" },
     { to: "/principal/bulk", label: "Bulk Upload", id: "nav-principal-bulk" },
   ],
   admin: [
@@ -47,6 +50,7 @@ export default function Navbar() {
           {links.map((l) => (
             <Link key={l.id} to={l.to} data-testid={l.id} className="hidden md:inline text-sm font-medium hover:underline underline-offset-4">{l.label}</Link>
           ))}
+          <LanguageSelector />
           {user ? (
             <button onClick={handleLogout} data-testid="logout-btn" className="btn-brutal bg-white px-4 py-2 text-sm flex items-center gap-1.5">
               <LogOut size={16} strokeWidth={2.5} /> Logout

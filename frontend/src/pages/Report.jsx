@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import api from "@/lib/api";
-import { Sparkles, Award, TrendingUp, Compass, GraduationCap, Route, Loader2, Printer, BarChart3 } from "lucide-react";
+import { Sparkles, Award, TrendingUp, Compass, GraduationCap, Route, Loader2, Printer, BarChart3, ArrowRight as ArrowRightIcon } from "lucide-react";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
 import CohortComparison from "@/components/CohortComparison";
 
@@ -86,6 +86,13 @@ export default function Report() {
                     ))}
                   </div>
                 )}
+                <Link
+                  to={`/career/${encodeURIComponent(c.title)}`}
+                  data-testid={`explore-career-${i}`}
+                  className="mt-4 inline-flex items-center gap-1 text-sm font-semibold underline underline-offset-4 print:hidden"
+                >
+                  Explore this career <ArrowRightIcon size={14} strokeWidth={2.5} />
+                </Link>
               </div>
             ))}
           </div>

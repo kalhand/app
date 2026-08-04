@@ -1,0 +1,49 @@
+{
+  "summary": "Iteration 4 testing (Class Report, Career Explorer deep-dive, Language toggle). Backend: 9/9 pytest passed in test_iteration4.py (class-report shape + RBAC, /careers/explore English + Hindi Devanagari verified, unauth 401). Frontend: Language toggle works (all 3 langs render, Hindi persists across reload in pf_lang, English restore). Counselor + Principal Class Report pages load with charts/alignment cards/print button/grade filter. RBAC verified: student blocked from /counselor/class-report (redirects to /dashboard), parent blocked from /principal/class-report (redirects to /parent). CRITICAL BUG FIXED by testing agent: Report.jsx used <ArrowRightIcon /> at line 94 but never imported it — this crashed the entire Report page. Added `ArrowRight as ArrowRightIcon` to lucide-react import; explore-career-N links now render and successfully navigate to /career/:title (Deep-dive page rendered with title, salary, skills, subjects, adjacent careers). ONE NEW BUG found and NOT fixed (needs main agent): clicking an adjacent-career-N link updates the URL but the CareerExplorer component does not refetch — page continues showing previous career's data indefinitely. Only affects in-app navigation between /career pages; direct URL navigation works.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Report.jsx", "issue": "Missing import for ArrowRightIcon caused entire Report page to crash on render (ReferenceError). Fixed by testing agent — added `ArrowRight as ArrowRightIcon` to lucide-react import. Please verify.", "selector": "[data-testid='explore-career-0']", "priority": "CRITICAL_FIXED"},
+      {"component": "CareerExplorer.jsx", "issue": "Clicking an adjacent-career-N Link updates the URL (e.g. /career/Software%20Engineer -> /career/DevOps%20Engineer) but the page continues to display the previous career's title, salary, skills etc. No loader shown, no refetch triggered. Verified with 30s wait. Direct URL entry works fine. Suspected cause: `user` object referenced in useEffect deps `[title, lang, user, stream]` — its identity may be stable but interaction with react-router same-route re-render may be swallowing the update. Consider (a) using JSON.stringify(user) or user?.id in deps, (b) adding `key={title}` to <CareerExplorer /> route element in App.js to force remount, or (c) using a `useLocation`/pathname trigger.", "selector": "[data-testid='adjacent-career-N']", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "ClassReport recharts", "issues": ["Console warns 'width(-1) and height(-1) of chart should be greater than 0' — likely because ResponsiveContainer parent is briefly 0px before data mount. Cosmetic only, charts still render."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration4.py",
+    "/app/backend/tests/test_iteration3.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/iter4.xml"
+  ],
+  "action_items": [
+    "PRIMARY: Fix adjacent-career navigation in CareerExplorer.jsx — recommend adding `key={title}` on the /career/:title Route in App.js OR restructuring useEffect to react to route change robustly (see suggestions above).",
+    "Verify placement of the ArrowRightIcon icon in Report.jsx explore-career link (currently `ArrowRight as ArrowRightIcon` alias added). Consider renaming to avoid alias.",
+    "Consider suppressing the recharts width(-1) warning by giving ResponsiveContainer a min-height."
+  ],
+  "critical_code_review_comments": [
+    "server.py is now ~1041 lines — long past the 700-line split threshold; the class-report + career-explore + cohort + vocational + bulk endpoints should live in their own routers.",
+    "CareerExplorer.jsx useEffect deps include the raw `user` object; if AuthContext ever re-emits a new reference (e.g. auth check) it will trigger a duplicate AI call ($$). Depend on user?.id / grade / board explicitly.",
+    "CAREER_SYSTEM_PROMPT is a large const inside server.py — move to a prompts/ module.",
+    "explore_career catches AI parse fail and raises 500 — a stale user in the middle of grading etc. would see raw 500; consider returning a structured `{error: 'ai_parse_failed', raw: text[:200]}` similar to ai_analyze fallback.",
+    "Adjacent-career link uses encodeURIComponent(c) but AI sometimes returns names containing '/' (e.g. 'Data Scientist/Computational Biologist') which encode as %2F. React-router routes accept this but the display is ugly and unshareable — consider stripping '/' from adjacent_careers post-parse.",
+    "CORS middleware still added AFTER include_router (unchanged from prior iterations).",
+    "Class report has no caching — every counselor page-load runs an O(N results) aggregation; fine for demo scale but plan for pagination/materialized view.",
+    "students_needing_attention exposes email; ensure this is intended for counsellor/principal roles only (currently it is — endpoint is role-restricted)."
+  ],
+  "updated_files": [
+    "/app/frontend/src/pages/Report.jsx",
+    "/app/backend/tests/test_iteration4.py"
+  ],
+  "success_rate": {"backend": "100% (9/9)", "frontend": "~90% — 1 open bug (adjacent-career refetch), 1 critical fixed"},
+  "test_credentials": "See /app/memory/test_credentials.md — all 5 roles verified working.",
+  "seed_data_creation": "None. Reused existing student's assessment reports (Aarav Sharma has 2+ reports).",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration 4: test_iteration4.py covers class-report (RBAC + shape + grade filter) and careers/explore (English + Hindi Devanagari check + 401). AI calls are real Claude Sonnet 4.5 — this file makes 2 AI calls (English + Hindi career deep-dive) so budget ~90s. Frontend PENDING RETEST after main agent fixes CareerExplorer adjacent-navigation bug: verify clicking adjacent-career-N updates the displayed career and reruns AI. Report.jsx fix (missing ArrowRightIcon import) already landed and verified via explore-career-0 click flow reaching the deep-dive page.",
+  "rca of the issue": "Bug 1 (fixed): Report.jsx referenced <ArrowRightIcon size=14 /> at line 94 but the lucide-react import at line 5 never listed it. This caused ReferenceError during render, blanking the entire /report/:id page and breaking the whole 'Careers that fit you' section — including the newly-added explore-career-N Links. Fix: added `ArrowRight as ArrowRightIcon` to the import. Bug 2 (open): CareerExplorer's useEffect depends on `[title, lang, user, stream]`. When you click an in-page <Link to=/career/OtherName>, react-router matches the SAME route pattern (/career/:title), so React reuses the component instance and only params change. In this scenario useEffect SHOULD fire because `title` changed — but our test observed no loader and no data change over 30s, implying the effect isn't running (or the setData is discarded). Most likely cause: `user` in deps is a fresh object reference each render but its shallow-equal skips detection in some flows; alternatively, react-router's params update is batched with a state that setData reads stale. Recommended fix: add `key={window.location.pathname}` or `<Route ... element={<CareerExplorer key={useParams().title}/>}` to force remount on title change, and/or narrow useEffect deps to `[title, lang, user?.id, user?.grade, user?.education_board]`."
+}

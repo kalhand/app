@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { NEPBadge } from "@/lib/nep";
 import { useAuth } from "@/context/AuthContext";
+import { useLang } from "@/context/LanguageContext";
 
 const CATEGORY_META = {
   personality: { label: "Personality", color: "bg-[#FEF08A]" },
@@ -18,6 +19,7 @@ const CATEGORY_META = {
 export default function Assessment() {
   const nav = useNavigate();
   const { user } = useAuth();
+  const { lang } = useLang();
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({}); // qid -> selected_index
   const [i, setI] = useState(0);
@@ -51,6 +53,7 @@ export default function Assessment() {
     try {
       const payload = {
         answers: Object.entries(answers).map(([question_id, selected_index]) => ({ question_id, selected_index })),
+        language: lang,
       };
       const { data } = await api.post("/assessment/submit", payload);
       toast.success("Your AI report is ready!");
