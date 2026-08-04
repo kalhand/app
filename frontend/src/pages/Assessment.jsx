@@ -40,6 +40,16 @@ export default function Assessment() {
   const progress = total ? Math.round((Object.keys(answers).length / total) * 100) : 0;
   const selected = q ? answers[q.id] : undefined;
 
+  // Localized text + options based on current language
+  const localized = (() => {
+    if (!q) return { text: "", options: [] };
+    const tr = q.translations && q.translations[lang];
+    if (tr && tr.text && Array.isArray(tr.options) && tr.options.length === q.options.length) {
+      return { text: tr.text, options: tr.options };
+    }
+    return { text: q.text, options: q.options };
+  })();
+
   const select = (idx) => {
     if (!q) return;
     setAnswers((prev) => ({ ...prev, [q.id]: idx }));
@@ -107,11 +117,11 @@ export default function Assessment() {
           >
             <span className="label-mono">{meta.label}</span>
             <h2 data-testid="question-text" className="font-display text-2xl md:text-3xl font-extrabold tracking-tight mt-3 leading-snug">
-              {q.text}
+              {localized.text}
             </h2>
 
             <div className="mt-8 grid grid-cols-1 gap-3">
-              {q.options.map((opt, idx) => {
+              {localized.options.map((opt, idx) => {
                 const isSel = selected === idx;
                 return (
                   <button

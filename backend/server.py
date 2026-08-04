@@ -159,6 +159,138 @@ class LinkStudentInput(BaseModel):
 
 
 # --------- Startup seeds ---------
+# Native-language translations keyed by the English question text.
+# Frontend picks translations[current_lang] when available, falls back to English.
+QUESTION_TRANSLATIONS = {
+    "At a party, you are most likely to:": {
+        "hi": {"text": "पार्टी में आप सबसे अधिक क्या करेंगे?",
+               "options": ["अजनबियों से बातचीत शुरू करना", "जान-पहचान वालों के साथ रहना", "किसी शांत कोने से देखना", "जल्दी घर लौट जाना"]},
+        "pa": {"text": "ਪਾਰਟੀ ਵਿੱਚ ਤੁਸੀਂ ਸਭ ਤੋਂ ਵੱਧ ਕੀ ਕਰੋਗੇ?",
+               "options": ["ਅਜਨਬੀਆਂ ਨਾਲ ਗੱਲਬਾਤ ਸ਼ੁਰੂ ਕਰਨਾ", "ਜਾਣ-ਪਛਾਣ ਵਾਲਿਆਂ ਨਾਲ ਰਹਿਣਾ", "ਕਿਸੇ ਸ਼ਾਂਤ ਕੋਨੇ ਤੋਂ ਵੇਖਣਾ", "ਛੇਤੀ ਘਰ ਪਰਤ ਜਾਣਾ"]},
+    },
+    "When faced with a new idea, you:": {
+        "hi": {"text": "किसी नए विचार का सामना करते समय आप:",
+               "options": ["उसे तलाशने के लिए उत्साहित हो जाते हैं", "उस पर सावधानी से विचार करते हैं", "पहले से ज्ञात बातों से तुलना करते हैं", "आजमाए हुए विचारों को प्राथमिकता देते हैं"]},
+        "pa": {"text": "ਕਿਸੇ ਨਵੇਂ ਵਿਚਾਰ ਦਾ ਸਾਹਮਣਾ ਕਰਦਿਆਂ ਤੁਸੀਂ:",
+               "options": ["ਉਸ ਨੂੰ ਖੋਜਣ ਲਈ ਉਤਸ਼ਾਹਿਤ ਹੁੰਦੇ ਹੋ", "ਧਿਆਨ ਨਾਲ ਵਿਚਾਰ ਕਰਦੇ ਹੋ", "ਪਹਿਲਾਂ ਜਾਣੇ ਨਾਲ ਤੁਲਨਾ ਕਰਦੇ ਹੋ", "ਪਰਖੇ ਵਿਚਾਰਾਂ ਨੂੰ ਤਰਜੀਹ ਦਿੰਦੇ ਹੋ"]},
+    },
+    "Your friends would describe you as:": {
+        "hi": {"text": "आपके मित्र आपको कैसे बताएँगे?",
+               "options": ["भरोसेमंद और व्यवस्थित", "मज़ेदार और सहज", "दयालु और सहानुभूतिपूर्ण", "महत्वाकांक्षी और मेहनती"]},
+        "pa": {"text": "ਤੁਹਾਡੇ ਦੋਸਤ ਤੁਹਾਨੂੰ ਕਿਵੇਂ ਦੱਸਣਗੇ?",
+               "options": ["ਭਰੋਸੇਯੋਗ ਤੇ ਵਿਵਸਥਿਤ", "ਮਜ਼ੇਦਾਰ ਤੇ ਸਹਿਜ", "ਦਿਆਲੂ ਤੇ ਹਮਦਰਦ", "ਉਤਸ਼ਾਹੀ ਤੇ ਮਿਹਨਤੀ"]},
+    },
+    "Under stress you tend to:": {
+        "hi": {"text": "तनाव में आप आमतौर पर:",
+               "options": ["शांत रहकर योजना बनाते हैं", "दूसरों से बात करते हैं", "अकेले होकर सोचते हैं", "जल्दी घबरा जाते हैं"]},
+        "pa": {"text": "ਤਣਾਅ ਵਿੱਚ ਤੁਸੀਂ ਆਮ ਤੌਰ 'ਤੇ:",
+               "options": ["ਸ਼ਾਂਤ ਰਹਿ ਕੇ ਯੋਜਨਾ ਬਣਾਉਂਦੇ ਹੋ", "ਦੂਜਿਆਂ ਨਾਲ ਗੱਲ ਕਰਦੇ ਹੋ", "ਇਕੱਲੇ ਹੋ ਕੇ ਸੋਚਦੇ ਹੋ", "ਛੇਤੀ ਘਬਰਾ ਜਾਂਦੇ ਹੋ"]},
+    },
+    "You prefer working:": {
+        "hi": {"text": "आप कैसे काम करना पसंद करते हैं?",
+               "options": ["अकेले, अपने विचारों पर", "बड़ी टीम में", "छोटी घनिष्ठ मंडली में", "टीम का नेतृत्व करते हुए"]},
+        "pa": {"text": "ਤੁਸੀਂ ਕਿਵੇਂ ਕੰਮ ਕਰਨਾ ਪਸੰਦ ਕਰਦੇ ਹੋ?",
+               "options": ["ਇਕੱਲੇ, ਆਪਣੇ ਵਿਚਾਰਾਂ 'ਤੇ", "ਵੱਡੀ ਟੀਮ ਵਿੱਚ", "ਛੋਟੀ ਨੇੜਲੀ ਢਾਣੀ ਵਿੱਚ", "ਟੀਮ ਦੀ ਅਗਵਾਈ ਕਰਦਿਆਂ"]},
+    },
+    "Which activity sounds most enjoyable?": {
+        "hi": {"text": "कौन-सी गतिविधि सबसे आनंददायक लगती है?",
+               "options": ["कुछ बनाना या मरम्मत करना", "विज्ञान की पहेली सुलझाना", "कहानी या पेंटिंग बनाना", "किसी मित्र को पढ़ाना", "छोटा व्यवसाय शुरू करना", "फ़ाइल और डेटा व्यवस्थित करना"]},
+        "pa": {"text": "ਕਿਹੜੀ ਗਤੀਵਿਧੀ ਸਭ ਤੋਂ ਵੱਧ ਮਜ਼ੇਦਾਰ ਲੱਗਦੀ ਹੈ?",
+               "options": ["ਕੁਝ ਬਣਾਉਣਾ ਜਾਂ ਮੁਰੰਮਤ ਕਰਨੀ", "ਸਾਇੰਸ ਦੀ ਬੁਝਾਰਤ ਸੁਲਝਾਉਣੀ", "ਕਹਾਣੀ ਜਾਂ ਪੇਂਟਿੰਗ ਬਣਾਉਣੀ", "ਦੋਸਤ ਨੂੰ ਪੜ੍ਹਾਉਣਾ", "ਛੋਟਾ ਵਪਾਰ ਸ਼ੁਰੂ ਕਰਨਾ", "ਫ਼ਾਈਲ ਤੇ ਡਾਟਾ ਵਿਵਸਥਿਤ ਕਰਨਾ"]},
+    },
+    "In free time you would rather:": {
+        "hi": {"text": "खाली समय में आप बल्कि:",
+               "options": ["गाड़ी / गैजेट पर काम करेंगे", "अंतरिक्ष व विज्ञान पढ़ेंगे", "संगीत या कला बनाएँगे", "आश्रय-स्थल में सेवा देंगे", "स्कूल कार्यक्रम का नेतृत्व करेंगे", "विस्तृत कार्यक्रम बनाएँगे"]},
+        "pa": {"text": "ਵਿਹਲੇ ਸਮੇਂ ਤੁਸੀਂ ਸ਼ਾਇਦ:",
+               "options": ["ਗੱਡੀ / ਗੈਜੇਟ 'ਤੇ ਕੰਮ ਕਰੋਗੇ", "ਪੁਲਾੜ ਤੇ ਸਾਇੰਸ ਪੜ੍ਹੋਗੇ", "ਸੰਗੀਤ ਜਾਂ ਕਲਾ ਬਣਾਓਗੇ", "ਆਸ਼ਰਮ ਵਿੱਚ ਸੇਵਾ ਕਰੋਗੇ", "ਸਕੂਲ ਸਮਾਗਮ ਦੀ ਅਗਵਾਈ ਕਰੋਗੇ", "ਵਿਸਤ੍ਰਿਤ ਯੋਜਨਾ ਬਣਾਓਗੇ"]},
+    },
+    "Your dream Saturday project:": {
+        "hi": {"text": "शनिवार का सपनीला प्रोजेक्ट:",
+               "options": ["आउटडोर एडवेंचर", "विज्ञान प्रयोग", "पोस्टर डिज़ाइन", "बच्चों को गाइड करना", "किसी विचार की पिच", "यात्रा का बजट"]},
+        "pa": {"text": "ਸ਼ਨੀਵਾਰ ਦਾ ਸੁਪਨਾ ਪ੍ਰੋਜੈਕਟ:",
+               "options": ["ਬਾਹਰੀ ਸਾਹਸ", "ਸਾਇੰਸ ਪ੍ਰਯੋਗ", "ਪੋਸਟਰ ਡਿਜ਼ਾਈਨ", "ਬੱਚਿਆਂ ਦੀ ਅਗਵਾਈ", "ਵਿਚਾਰ ਦੀ ਪੇਸ਼ਕਾਰੀ", "ਸਫ਼ਰ ਦਾ ਬਜਟ"]},
+    },
+    "If 3x + 5 = 20, what is x?": {
+        "hi": {"text": "यदि 3x + 5 = 20 है, तो x क्या होगा?", "options": ["3", "5", "7", "15"]},
+        "pa": {"text": "ਜੇ 3x + 5 = 20 ਹੈ, ਤਾਂ x ਕੀ ਹੋਵੇਗਾ?", "options": ["3", "5", "7", "15"]},
+    },
+    "Which number comes next: 2, 6, 12, 20, ?": {
+        "hi": {"text": "अगला अंक कौन-सा है? 2, 6, 12, 20, ?", "options": ["28", "30", "32", "26"]},
+        "pa": {"text": "ਅਗਲਾ ਨੰਬਰ ਕਿਹੜਾ ਹੈ? 2, 6, 12, 20, ?", "options": ["28", "30", "32", "26"]},
+    },
+    "Choose the odd one out:": {
+        "hi": {"text": "अलग विकल्प चुनें:", "options": ["सेब", "केला", "गाजर", "आम"]},
+        "pa": {"text": "ਵੱਖਰਾ ਵਿਕਲਪ ਚੁਣੋ:", "options": ["ਸੇਬ", "ਕੇਲਾ", "ਗਾਜਰ", "ਅੰਬ"]},
+    },
+    "A train travels 60 km in 1 hour. How long to travel 150 km?": {
+        "hi": {"text": "एक ट्रेन 1 घंटे में 60 किमी चलती है। 150 किमी में कितना समय लगेगा?",
+               "options": ["1.5 घंटे", "2 घंटे", "2.5 घंटे", "3 घंटे"]},
+        "pa": {"text": "ਇੱਕ ਗੱਡੀ 1 ਘੰਟੇ ਵਿੱਚ 60 ਕਿਲੋਮੀਟਰ ਚਲਦੀ ਹੈ। 150 ਕਿਲੋਮੀਟਰ ਵਿੱਚ ਕਿੰਨਾ ਸਮਾਂ ਲੱਗੇਗਾ?",
+               "options": ["1.5 ਘੰਟੇ", "2 ਘੰਟੇ", "2.5 ਘੰਟੇ", "3 ਘੰਟੇ"]},
+    },
+    "Synonym of 'Rapid':": {
+        "hi": {"text": "'Rapid' का पर्यायवाची:", "options": ["धीमा", "तेज़", "ज़ोरदार", "भारी"]},
+        "pa": {"text": "'Rapid' ਦਾ ਸਮਾਨਾਰਥਕ:", "options": ["ਹੌਲੀ", "ਤੇਜ਼", "ਉੱਚੀ", "ਭਾਰੀ"]},
+    },
+    "If all Bloops are Razzies and all Razzies are Lazzies, then all Bloops are:": {
+        "hi": {"text": "यदि सभी Bloops, Razzies हैं और सभी Razzies, Lazzies हैं, तो सभी Bloops हैं:",
+               "options": ["Lazzies", "केवल Razzies", "कोई नहीं", "नहीं बता सकते"]},
+        "pa": {"text": "ਜੇ ਸਾਰੇ Bloops, Razzies ਹਨ ਤੇ ਸਾਰੇ Razzies, Lazzies ਹਨ, ਤਾਂ ਸਾਰੇ Bloops ਹਨ:",
+               "options": ["Lazzies", "ਕੇਵਲ Razzies", "ਕੋਈ ਨਹੀਂ", "ਨਹੀਂ ਦੱਸ ਸਕਦੇ"]},
+    },
+    "The derivative of x^3 with respect to x is:": {
+        "hi": {"text": "x के सापेक्ष x^3 का अवकलज है:", "options": ["3x", "x^2", "3x^2", "x^3/3"]},
+        "pa": {"text": "x ਦੇ ਸਾਪੇਖ x^3 ਦਾ ਡੈਰੀਵੇਟਿਵ ਹੈ:", "options": ["3x", "x^2", "3x^2", "x^3/3"]},
+    },
+    "If a coin is tossed 3 times, probability of getting at least one head is:": {
+        "hi": {"text": "एक सिक्का 3 बार उछाला जाता है, कम से कम एक हेड आने की प्रायिकता है:",
+               "options": ["1/8", "3/8", "1/2", "7/8"]},
+        "pa": {"text": "ਸਿੱਕਾ 3 ਵਾਰ ਸੁੱਟਿਆ ਗਿਆ, ਘੱਟੋ-ਘੱਟ ਇੱਕ ਹੈੱਡ ਆਉਣ ਦੀ ਸੰਭਾਵਨਾ:",
+               "options": ["1/8", "3/8", "1/2", "7/8"]},
+    },
+    "Which of these is a persuasive writing technique?": {
+        "hi": {"text": "इनमें से कौन-सी प्रेरक लेखन तकनीक है?",
+               "options": ["अलंकारिक प्रश्न", "बेतरतीब डेटा", "साधारण सूची", "मौन अनुमान"]},
+        "pa": {"text": "ਇਹਨਾਂ ਵਿੱਚੋਂ ਕਿਹੜੀ ਪ੍ਰੇਰਕ ਲਿਖਣ-ਵਿਧੀ ਹੈ?",
+               "options": ["ਅਲੰਕਾਰਿਕ ਸਵਾਲ", "ਬੇਤਰਤੀਬ ਡਾਟਾ", "ਸਧਾਰਨ ਸੂਚੀ", "ਚੁੱਪ ਅਨੁਮਾਨ"]},
+    },
+    "'Ephemeral' most nearly means:": {
+        "hi": {"text": "'Ephemeral' का निकटतम अर्थ:", "options": ["चिरस्थायी", "अल्पकालिक", "शक्तिशाली", "छिपा हुआ"]},
+        "pa": {"text": "'Ephemeral' ਦਾ ਨੇੜਲਾ ਅਰਥ:", "options": ["ਲੰਬੇ ਸਮੇਂ ਦਾ", "ਥੋੜ੍ਹਚਿਰੀ", "ਸ਼ਕਤੀਸ਼ਾਲੀ", "ਛੁਪਿਆ ਹੋਇਆ"]},
+    },
+    "Which shape completes the pattern? ▲ ● ▲ ● ▲ ?": {
+        "hi": {"text": "पैटर्न पूरा करने वाली आकृति कौन-सी है? ▲ ● ▲ ● ▲ ?", "options": ["▲", "●", "■", "★"]},
+        "pa": {"text": "ਪੈਟਰਨ ਪੂਰਾ ਕਰਨ ਵਾਲੀ ਸ਼ਕਲ ਕਿਹੜੀ ਹੈ? ▲ ● ▲ ● ▲ ?", "options": ["▲", "●", "■", "★"]},
+    },
+    "'BOOK' is to 'READ' as 'MUSIC' is to:": {
+        "hi": {"text": "'BOOK' का 'READ' से जो सम्बन्ध है, वही 'MUSIC' का किससे है?",
+               "options": ["गाना", "सुनना", "लिखना", "बजाना"]},
+        "pa": {"text": "'BOOK' ਦਾ 'READ' ਨਾਲ ਜੋ ਰਿਸ਼ਤਾ ਹੈ, ਉਹੀ 'MUSIC' ਦਾ ਕਿਸ ਨਾਲ ਹੈ?",
+               "options": ["ਗਾਉਣਾ", "ਸੁਣਨਾ", "ਲਿਖਣਾ", "ਵਜਾਉਣਾ"]},
+    },
+    "Which number is missing? 1, 4, 9, 16, ?, 36": {
+        "hi": {"text": "छूटा हुआ अंक कौन-सा है? 1, 4, 9, 16, ?, 36", "options": ["20", "25", "30", "24"]},
+        "pa": {"text": "ਗ਼ਾਇਬ ਨੰਬਰ ਕਿਹੜਾ ਹੈ? 1, 4, 9, 16, ?, 36", "options": ["20", "25", "30", "24"]},
+    },
+    "How many minutes are there in a quarter of a day?": {
+        "hi": {"text": "एक दिन के चौथाई भाग में कितने मिनट होते हैं?", "options": ["180", "240", "360", "720"]},
+        "pa": {"text": "ਇੱਕ ਦਿਨ ਦੇ ਚੌਥੇ ਹਿੱਸੇ ਵਿੱਚ ਕਿੰਨੇ ਮਿੰਟ ਹੁੰਦੇ ਹਨ?", "options": ["180", "240", "360", "720"]},
+    },
+    "If today is Wednesday, what day is 100 days from now?": {
+        "hi": {"text": "यदि आज बुधवार है, तो अब से 100 दिन बाद कौन-सा दिन होगा?",
+               "options": ["गुरुवार", "शुक्रवार", "शनिवार", "रविवार"]},
+        "pa": {"text": "ਜੇ ਅੱਜ ਬੁੱਧਵਾਰ ਹੈ, ਤਾਂ 100 ਦਿਨਾਂ ਬਾਅਦ ਕਿਹੜਾ ਦਿਨ ਹੋਵੇਗਾ?",
+               "options": ["ਵੀਰਵਾਰ", "ਸ਼ੁੱਕਰਵਾਰ", "ਸ਼ਨੀਵਾਰ", "ਐਤਵਾਰ"]},
+    },
+    "In a code, DOG = 4-15-7. What is CAT?": {
+        "hi": {"text": "एक कोड में DOG = 4-15-7 है। CAT क्या होगा?",
+               "options": ["3-1-20", "3-2-19", "4-1-19", "3-1-19"]},
+        "pa": {"text": "ਇੱਕ ਕੋਡ ਵਿੱਚ DOG = 4-15-7 ਹੈ। CAT ਕੀ ਹੋਵੇਗਾ?",
+               "options": ["3-1-20", "3-2-19", "4-1-19", "3-1-19"]},
+    },
+}
+
+
 DEFAULT_QUESTIONS = [
     # Universal (all grades 8-12)
     {"category": "personality", "text": "At a party, you are most likely to:",
@@ -293,30 +425,26 @@ async def seed_defaults():
 
     # Upsert each DEFAULT question by text so newly-added senior questions land on next boot
     for q in DEFAULT_QUESTIONS:
+        translations = QUESTION_TRANSLATIONS.get(q["text"])
         existing = await db.questions.find_one({"text": q["text"]})
+        base = {
+            "category": q["category"],
+            "options": q["options"],
+            "trait_map": q.get("trait_map"),
+            "correct_index": q.get("correct_index"),
+            "grade_levels": q.get("grade_levels") or [8, 9, 10, 11, 12],
+            "translations": translations,
+        }
         if existing:
-            await db.questions.update_one(
-                {"text": q["text"]},
-                {"$set": {
-                    "category": q["category"],
-                    "options": q["options"],
-                    "trait_map": q.get("trait_map"),
-                    "correct_index": q.get("correct_index"),
-                    "grade_levels": q.get("grade_levels") or [8, 9, 10, 11, 12],
-                }},
-            )
+            await db.questions.update_one({"text": q["text"]}, {"$set": base})
         else:
             await db.questions.insert_one({
                 "id": str(uuid.uuid4()),
-                "category": q["category"],
                 "text": q["text"],
-                "options": q["options"],
-                "trait_map": q.get("trait_map"),
-                "correct_index": q.get("correct_index"),
-                "grade_levels": q.get("grade_levels") or [8, 9, 10, 11, 12],
+                **base,
                 "created_at": datetime.now(timezone.utc).isoformat(),
             })
-    logger.info(f"Ensured {len(DEFAULT_QUESTIONS)} default questions present")
+    logger.info(f"Ensured {len(DEFAULT_QUESTIONS)} default questions present (with translations)")
 
 
 @app.on_event("startup")

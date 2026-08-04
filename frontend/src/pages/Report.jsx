@@ -7,7 +7,7 @@ import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Responsi
 import CohortComparison from "@/components/CohortComparison";
 
 const AI_IMG =
-  "https://images.unsplash.com/photo-1617791160536-598cf32026fb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDZ8MHwxfHNlYXJjaHwyfHxhYnN0cmFjdCUyMGdsb3dpbmclMjBicmFpbiUyMEFJfGVufDB8fHx8MTc4NTMxMjkyMXww&ixlib=rb-4.1.0&q=85";
+  "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&w=1000&q=85";
 
 const ALIGNMENT_STYLE = {
   strong: { color: "bg-[#A7F3D0]", label: "Strong alignment" },
@@ -84,8 +84,8 @@ export default function Report() {
             </div>
           </div>
           <div className="md:col-span-4 card-brutal p-4 bg-[#E9D5FF]">
-            <img src={AI_IMG} alt="AI Brain" className="w-full h-56 object-cover rounded-xl border-2 border-[#0A0A0A]" />
-            <p className="mt-3 text-sm font-medium">Analyzed by Claude Sonnet 4.5</p>
+            <img src={AI_IMG} alt="AI matrix visualisation" className="w-full h-56 object-cover rounded-xl border-2 border-[#0A0A0A]" onError={(e) => { e.currentTarget.src = "https://images.pexels.com/photos/60504/security-protection-anti-virus-software-60504.jpeg?auto=compress&cs=tinysrgb&w=800"; }} />
+            <p className="mt-3 text-sm font-medium">AI-generated career report</p>
           </div>
         </div>
 
