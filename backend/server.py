@@ -28,7 +28,7 @@ JWT_SECRET = os.environ['JWT_SECRET']
 JWT_ALG = "HS256"
 EMERGENT_LLM_KEY = os.environ['EMERGENT_LLM_KEY']
 
-app = FastAPI(title="Pathfinder AI")
+app = FastAPI(title="PathfinderAiClub")
 api = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
 
@@ -1378,7 +1378,7 @@ async def accept_invite(code: str, payload: InviteAcceptInput):
 
 @api.get("/")
 async def root():
-    return {"message": "Pathfinder AI API", "status": "ok"}
+    return {"message": "PathfinderAiClub API", "status": "ok"}
 
 
 # --------- Cohort Comparison ---------

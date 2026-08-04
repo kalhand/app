@@ -64,7 +64,7 @@ export default function InviteAccept() {
           <div className="w-9 h-9 bg-[#FEF08A] border-2 border-[#0A0A0A] rounded-xl flex items-center justify-center rotate-[-4deg]">
             <Compass strokeWidth={2.5} size={20} />
           </div>
-          <span className="font-display font-extrabold text-xl tracking-tight">Pathfinder<span className="text-blue-600">.AI</span></span>
+          <span className="font-display font-extrabold text-xl tracking-tight">PathfinderAiClub</span>
         </div>
 
         <div className="card-brutal p-8">
@@ -74,7 +74,7 @@ export default function InviteAccept() {
           </div>
           <h1 className="font-display text-3xl font-extrabold mt-4">Join {invite.school_name}</h1>
           <p className="text-sm text-[#52525B] mt-2">
-            Your university has invited you to Pathfinder AI as a <b className="capitalize">{invite.role}</b>.
+            Your university has invited you to PathfinderAiClub as a <b className="capitalize">{invite.role}</b>.
             Set your password and get instant access.
           </p>
           <div className="mt-4 inline-flex items-center gap-2 border-2 border-[#0A0A0A] rounded-full px-3 py-1 bg-[#FEF08A]">

@@ -52,7 +52,7 @@ export default function Navbar() {
           <div className="w-9 h-9 bg-[#FEF08A] border-2 border-[#0A0A0A] rounded-xl flex items-center justify-center rotate-[-4deg] group-hover:rotate-0 transition-transform">
             <Compass strokeWidth={2.5} size={20} />
           </div>
-          <span className="font-display font-extrabold text-xl tracking-tight">Pathfinder<span className="text-blue-600">.AI</span></span>
+          <span className="font-display font-extrabold text-xl tracking-tight">PathfinderAiClub</span>
           <span className="hidden md:inline label-mono ml-2 bg-[#E9D5FF] px-2 py-0.5 border-2 border-[#0A0A0A] rounded-full">NEP 2020</span>
         </Link>
 

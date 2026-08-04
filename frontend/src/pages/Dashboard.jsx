@@ -42,7 +42,7 @@ export default function Dashboard() {
               {hasResults ? "Retake your assessment" : "Take your career assessment"}
             </h2>
             <p className="mt-2 text-sm md:text-base">
-              Questions adapt to your class ({user?.grade || "—"}). Pathfinder AI writes a report aligned to NEP 2020 and your board.
+              Questions adapt to your class ({user?.grade || "—"}). PathfinderAiClub writes a report aligned to NEP 2020 and your board.
             </p>
             <Link to="/assessment" data-testid="start-assessment-btn" className="btn-brutal bg-blue-600 text-white inline-flex items-center gap-2 px-5 py-3 mt-6">
               {hasResults ? <><RotateCcw size={18} strokeWidth={2.5} /> Retake Assessment</> : <>Start Assessment <ArrowRight size={18} strokeWidth={2.5} /></>}

@@ -193,7 +193,7 @@ export default function ClassReport() {
         )}
 
         <div className="mt-8 text-xs text-[#52525B] text-center">
-          © Pathfinder AI · Aligned with NEP 2020 · Generated {format(new Date(data.generated_at), "dd MMM yyyy")}
+          © PathfinderAiClub · Aligned with NEP 2020 · Generated {format(new Date(data.generated_at), "dd MMM yyyy")}
         </div>
       </div>
     </div>

@@ -50,7 +50,7 @@ export default function Certificate() {
               <div className="w-10 h-10 bg-[#FEF08A] border-2 border-[#0A0A0A] rounded-xl flex items-center justify-center rotate-[-4deg]">
                 <Compass strokeWidth={2.5} size={22} />
               </div>
-              <span className="font-display font-extrabold text-2xl tracking-tight">Pathfinder<span className="text-blue-600">.AI</span></span>
+              <span className="font-display font-extrabold text-2xl tracking-tight">PathfinderAiClub</span>
             </div>
 
             <div className="mt-6 label-mono">Certificate of Career Discovery</div>
@@ -63,7 +63,7 @@ export default function Certificate() {
                 <h2 data-testid="cert-name" className="font-display text-3xl md:text-5xl font-extrabold tracking-tight">{data.user_name}</h2>
               </div>
               <p className="mt-6 text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
-                has completed the Pathfinder AI psychometric &amp; career assessment on <b>{date}</b> and has been identified with a
+                has completed the PathfinderAiClub psychometric &amp; career assessment on <b>{date}</b> and has been identified with a
                 strong aptitude for
               </p>
               <div className="mt-6">
@@ -96,7 +96,7 @@ export default function Certificate() {
 
             <div className="mt-10 grid grid-cols-2 items-end max-w-3xl mx-auto gap-6">
               <div className="text-left">
-                <div className="border-b-2 border-[#0A0A0A] w-full h-8 flex items-end pb-1 font-signature italic text-xl">Pathfinder.AI</div>
+                <div className="border-b-2 border-[#0A0A0A] w-full h-8 flex items-end pb-1 font-signature italic text-xl">PathfinderAiClub</div>
                 <div className="label-mono mt-2">Authorized signatory</div>
               </div>
               <div className="text-right">
