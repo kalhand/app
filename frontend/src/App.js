@@ -1,54 +1,56 @@
-import { useEffect } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
-import { HOME } from "@/constants/testIds";
+import { Toaster } from "sonner";
+import { AuthProvider } from "@/context/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
-
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
-
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
-  return (
-    <div>
-      <header className="App-header">
-        <a
-          data-testid={HOME.emergentLink}
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
-};
+import Landing from "@/pages/Landing";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
+import Dashboard from "@/pages/Dashboard";
+import Assessment from "@/pages/Assessment";
+import Report from "@/pages/Report";
+import AdminDashboard from "@/pages/AdminDashboard";
+import AdminQuestions from "@/pages/AdminQuestions";
+import AdminResults from "@/pages/AdminResults";
+import ParentDashboard from "@/pages/ParentDashboard";
+import SchoolDashboard from "@/pages/SchoolDashboard";
+import SchoolStudents from "@/pages/SchoolStudents";
 
 function App() {
   return (
     <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <Toaster position="top-right" richColors />
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+
+            {/* Student */}
+            <Route path="/dashboard" element={<ProtectedRoute roles={["student"]}><Dashboard /></ProtectedRoute>} />
+            <Route path="/assessment" element={<ProtectedRoute roles={["student"]}><Assessment /></ProtectedRoute>} />
+            <Route path="/report/:id" element={<ProtectedRoute><Report /></ProtectedRoute>} />
+
+            {/* Parent */}
+            <Route path="/parent" element={<ProtectedRoute roles={["parent"]}><ParentDashboard /></ProtectedRoute>} />
+
+            {/* Counselor */}
+            <Route path="/counselor" element={<ProtectedRoute roles={["counselor"]}><SchoolDashboard variant="counselor" /></ProtectedRoute>} />
+            <Route path="/counselor/students" element={<ProtectedRoute roles={["counselor"]}><SchoolStudents variant="counselor" /></ProtectedRoute>} />
+
+            {/* Principal */}
+            <Route path="/principal" element={<ProtectedRoute roles={["principal"]}><SchoolDashboard variant="principal" /></ProtectedRoute>} />
+            <Route path="/principal/students" element={<ProtectedRoute roles={["principal"]}><SchoolStudents variant="principal" /></ProtectedRoute>} />
+
+            {/* Admin */}
+            <Route path="/admin" element={<ProtectedRoute roles={["admin"]}><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin/questions" element={<ProtectedRoute roles={["admin"]}><AdminQuestions /></ProtectedRoute>} />
+            <Route path="/admin/results" element={<ProtectedRoute roles={["admin"]}><AdminResults /></ProtectedRoute>} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </div>
   );
 }

@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 2 backend + frontend testing. Backend: 22/23 pytest passed. All 5 seed roles login, /auth/meta returns 7 boards + 4 roles, register works for student/parent/counselor, parent link is idempotent, parent can view linked child's result but not others, school overview/students/results scoped correctly for counselor & principal, cross-role authz enforced (student->/school 403, counselor->POST /questions 403, parent->submit 403), student retake works and /results/me is sorted newest-first, AI report contains nep_alignment and board_notes, result document includes nep_stage/education_board/school_name. One failing test surfaced a real bug: senior (grade 11-12) questions from DEFAULT_QUESTIONS are missing from DB, which weakens class-based filtering. Frontend: All 5 role logins redirect to correct home routes, cross-role access blocked (student->/counselor bounces to /dashboard, principal->/counselor bounces to /principal). Register page shows 4 role selectors and reveals correct fields per role. Student dashboard shows NEP badge, Class/Board/School row, and 'Retake Assessment' button (correct because student already has past reports). Parent dashboard shows Aarav Sharma linked child with NEP badge + latest AI summary + link form. Counselor & Principal dashboards render Demo Public School stats; /counselor/students and /principal/students tables render with search + grade filter + latest career column.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/questions (admin)", "issue": "Senior-only questions (grade_levels=[11,12] — derivative, probability, ephemeral, day-of-week, DOG=CAT code) never appear in DB. Root cause: seed_defaults() only bulk-inserts DEFAULT_QUESTIONS when db.questions.count_documents({})==0. Iteration 1 seeded 18 questions before grade_levels existed; iteration 2 added 6 senior questions to DEFAULT_QUESTIONS but the guard skips insertion. The backfill sets grade_levels=[8..12] on existing 18 rows, effectively making every question universal and defeating the class-based filter (a grade-10 student sees exactly the same set as a grade-12 student). Fix: upsert questions by text/id, or seed on empty-per-category, or add a migration that inserts any DEFAULT question missing from DB."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Counselor/Principal dashboards", "issues": ["Recharts logs repeated 'width(-1) and height(-1)' warnings on initial mount before container measures — cosmetic console noise, charts still render correctly after resize. Consider wrapping ResponsiveContainer with an explicit min-height or aspect ratio."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Fix question seeding: senior questions [11,12] never get inserted after initial seed. Change seed_defaults() to upsert each DEFAULT question (by text or a stable slug) so new senior questions land in DB on next boot. Otherwise class-based filtering appears to work but really returns everything.",
+    "(Optional cosmetic) Suppress Recharts width/height warnings on counselor/principal dashboards by giving ResponsiveContainer explicit min dimensions."
+  ],
+  "critical_code_review_comments": [
+    "server.py seed_defaults() question guard `count_documents==0` prevents adding new default questions across iterations — needs an upsert-by-content pattern.",
+    "server.py get_current_user projects out password_hash but /auth/login response includes the full user doc minus password_hash/_id via dict-comprehension which is fine; keep consistent by adding a helper _public_user().",
+    "server.py: /results/{rid} authz for counselor/principal only compares school_name equality — good, but doc.get('school_name') can be None for older results; consider requiring both non-None.",
+    "server.py is 700 lines — approaching the split-threshold; consider moving auth, questions, assessment, school modules into routers/ subpackage.",
+    "CORS middleware is registered AFTER app.include_router — currently still works with FastAPI, but conventionally register middleware before routers.",
+    "No rate limit / brute-force lockout on /auth/login (playbook mentions 5-fail lockout — not implemented)."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py", "/app/test_reports/iteration_2.json"],
+  "success_rate": {"backend": "96% (22/23 pytest, single failure exposes real seed bug)", "frontend": "100% of critical flows"},
+  "test_credentials": "See /app/memory/test_credentials.md — all 5 seed accounts verified working (admin/student/parent/counselor/principal @pathfinder.ai).",
+  "seed_data_creation": "Registration tests create TEST_ prefixed users (student/parent/counselor) — not cleaned up; small volume, safe to leave.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend regression suite at /app/backend/tests/backend_test.py covers auth, meta, register, questions filtering, assessment submit + retake + sort, parent link/children/authz, school overview/students/results for counselor+principal, cross-role authz. Runs in ~100s (uses live Claude Sonnet for 2 real assessment submissions). If main agent implements question-upsert fix, re-run only test_questions_admin_sees_all; expect senior 'derivative of x^3' question to appear.",
+  "rca of the issue": "Seed bug: seed_defaults() gates the entire questions insertion on `count_documents({}) == 0`. In iteration 1 only 18 universal-eligible questions existed; in iteration 2 the DEFAULT_QUESTIONS list grew to include 6 senior (grade 11-12) items, but since the collection was non-empty at boot the new items were skipped. The subsequent backfill sets grade_levels=[8..12] on any row where it was null/empty, so all pre-existing rows now claim to cover every grade — masking the missing senior content and neutralizing the grade filter (a grade-10 student and a grade-12 student receive identical questions). Reproduction: login as admin, GET /api/questions -> only 18 rows returned, none contain 'derivative of x^3'. Mitigation: replace the count==0 guard with per-question upsert (unique index on text or slug) so new DEFAULT_QUESTIONS are inserted on each boot; alternatively add a one-time migration that inserts any DEFAULT question whose text is not yet in the DB."
+}

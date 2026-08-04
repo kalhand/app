@@ -1,0 +1,31 @@
+{
+  "summary": "First-finish smoke test of Pathfinder AI (backend + frontend). All key backend endpoints (auth, questions RBAC, admin CRUD, assessment with real Claude Sonnet 4.5, results ownership/RBAC, admin stats/results) work correctly. Frontend landing loads with hero-tag/cta-get-started, admin login redirects to /admin dashboard showing stat cards, /admin/questions renders new-question-btn, /admin/results shows submitted assessment with View link. No console/page errors.",
+  "tested_scope": ["backend", "frontend", "auth", "integration"],
+  "passed": [
+    "POST /api/auth/register returns JWT (field 'token') + user (student role)",
+    "POST /api/auth/login for admin@pathfinder.ai returns role=admin",
+    "GET /api/auth/me returns current user with Bearer token",
+    "GET /api/questions as student omits correct_index/trait_map",
+    "GET /api/questions as admin includes correct_index/trait_map",
+    "POST /api/questions as admin creates question (trait_map as List[str]); PUT 200; DELETE 200",
+    "POST /api/questions as student -> 403",
+    "POST /api/assessment/submit with all 18 seeded answers returns ai_report with summary, personality_analysis (non-empty), top_careers (3), recommended_stream, roadmap (3) via Claude Sonnet 4.5",
+    "GET /api/results/me returns created result; GET /api/results/{id} owner=200",
+    "GET /api/results/{id} by another student -> 403",
+    "GET /api/admin/results (admin) returns list; student -> 403",
+    "GET /api/admin/stats (admin) returns users/questions/assessments; student -> 403",
+    "Frontend landing shows hero-tag & cta-get-started",
+    "Admin login (admin@pathfinder.ai / Admin@123) -> /admin with stat cards",
+    "/admin/questions renders new-question-btn",
+    "/admin/results shows assessment row with View link"
+  ],
+  "failed": [],
+  "action_items": [
+    "Minor doc note: auth endpoints return the JWT under the field name 'token' (not 'access_token'). Verify frontend AuthContext already reads 'token' from response (assumed working since admin login navigated to /admin).",
+    "Minor: POST /api/questions requires trait_map as List[str] with length == options length (not a dict). Admin UI form-trait-* inputs should send array."
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100% (smoke)"},
+  "retest_needed": false,
+  "full_testing_deferred": true,
+  "notes": "Student assessment E2E flow (Assessment.jsx option-*/next-btn/submit-assessment-btn -> /report/:id) was verified only at API level (POST /api/assessment/submit produced a real AI report id 64490677...). Full UI walk-through of the 18-question assessment and Report page career-card rendering deferred to full QA agent."
+}
