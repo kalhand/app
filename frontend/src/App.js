@@ -20,6 +20,7 @@ import SchoolStudents from "@/pages/SchoolStudents";
 import Vocational from "@/pages/Vocational";
 import BulkOnboard from "@/pages/BulkOnboard";
 import CareerExplorer from "@/pages/CareerExplorer";
+import CareerExplorerRoute from "@/pages/CareerExplorerRoute";
 import ClassReport from "@/pages/ClassReport";
 
 function App() {

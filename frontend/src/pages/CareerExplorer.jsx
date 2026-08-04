@@ -28,7 +28,8 @@ export default function CareerExplorer() {
       .then((r) => setData(r.data))
       .catch(() => setErr("Could not load career deep-dive. Please try again."))
       .finally(() => setLoading(false));
-  }, [title, lang, user, stream]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, lang, user?.id, user?.grade, user?.education_board]);
 
   if (loading) {
     return (
