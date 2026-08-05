@@ -361,8 +361,8 @@ DEFAULT_QUESTIONS = [
 
 DEMO_USERS = [
     {"role": "admin", "name": "Platform Admin", "email": "admin@pathfinder.ai", "password": "Admin@123"},
-    {"role": "university", "name": "Panjab University Board", "email": "university@pathfinder.ai", "password": "University@123",
-     "organization_name": "Panjab University Career Cell"},
+    {"role": "university", "name": "Rayat Bahara Career Cell", "email": "university@rayatbahara.edu", "password": "Rayat@123",
+     "organization_name": "Rayat Bahara University"},
     {"role": "student", "name": "Aarav Sharma", "email": "student@pathfinder.ai", "password": "Student@123",
      "grade": "10", "education_board": "CBSE", "school_name": "Demo Public School"},
     {"role": "parent", "name": "Priya Sharma", "email": "parent@pathfinder.ai", "password": "Parent@123",
@@ -386,9 +386,16 @@ async def seed_defaults():
     for u in DEMO_USERS:
         existing = await db.users.find_one({"email": u["email"]})
         if existing:
-            # ensure password is aligned with env/seed
+            # ensure password + org name stay in sync with seed
+            updates = {}
             if not verify_password(u["password"], existing.get("password_hash", "")):
-                await db.users.update_one({"email": u["email"]}, {"$set": {"password_hash": hash_password(u["password"])}})
+                updates["password_hash"] = hash_password(u["password"])
+            if u.get("organization_name") and existing.get("organization_name") != u["organization_name"]:
+                updates["organization_name"] = u["organization_name"]
+            if u.get("name") and existing.get("name") != u["name"]:
+                updates["name"] = u["name"]
+            if updates:
+                await db.users.update_one({"email": u["email"]}, {"$set": updates})
             continue
         doc = {
             "id": str(uuid.uuid4()),
@@ -406,8 +413,8 @@ async def seed_defaults():
         await db.users.insert_one(doc)
         logger.info(f"Seeded {u['role']}: {u['email']}")
 
-    # Seed default school registry entry - link to university seed for branding demo
-    univ_seed = await db.users.find_one({"email": "university@pathfinder.ai"})
+    # Seed default school registry entry - link to CURRENT university seed for branding demo
+    univ_seed = await db.users.find_one({"email": "university@rayatbahara.edu"})
     univ_id = univ_seed["id"] if univ_seed else "system"
     existing_school = await db.schools.find_one({"name": "Demo Public School"})
     if not existing_school:
@@ -420,8 +427,11 @@ async def seed_defaults():
             "created_by": univ_id,
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
-    elif existing_school.get("created_by") in (None, "system"):
+    else:
+        # Always keep Demo Public School linked to the current university seed so branding cascades
         await db.schools.update_one({"name": "Demo Public School"}, {"$set": {"created_by": univ_id}})
+    # Clean up any stale old university user
+    await db.users.delete_one({"email": "university@pathfinder.ai"})
 
     # Upsert each DEFAULT question by text so newly-added senior questions land on next boot
     for q in DEFAULT_QUESTIONS:
