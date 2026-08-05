@@ -1569,6 +1569,107 @@ async def accept_invite(code: str, payload: InviteAcceptInput):
     return {"token": token, "user": doc}
 
 
+class UniversalInviteCreateInput(BaseModel):
+    role: Literal["university", "principal", "counselor"]
+    school_id: Optional[str] = None  # required for principal/counselor
+    expires_hours: Optional[int] = 168
+
+
+@api.post("/admin/invites")
+async def admin_create_invite(payload: UniversalInviteCreateInput,
+                               user: dict = Depends(require_roles("admin"))):
+    if payload.role != "university":
+        raise HTTPException(400, "Admin can only invite universities")
+    code = _rand_code(8)
+    while await db.school_invites.find_one({"code": code}):
+        code = _rand_code(8)
+    expires_at = (datetime.now(timezone.utc) + timedelta(hours=payload.expires_hours or 168)).isoformat()
+    doc = {
+        "id": str(uuid.uuid4()), "code": code, "role": "university",
+        "school_id": None, "school_name": None,
+        "created_by": user["id"], "created_at": datetime.now(timezone.utc).isoformat(),
+        "expires_at": expires_at, "used": False, "used_by": None,
+    }
+    await db.school_invites.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+@api.post("/principal/invites")
+async def principal_create_invite(payload: UniversalInviteCreateInput,
+                                   user: dict = Depends(require_roles("principal"))):
+    if payload.role != "counselor":
+        raise HTTPException(400, "Principals can only invite counselors")
+    school_name = user.get("school_name") or ""
+    school = await db.schools.find_one({"name": school_name})
+    if not school:
+        raise HTTPException(400, "Your school is not registered")
+    code = _rand_code(8)
+    while await db.school_invites.find_one({"code": code}):
+        code = _rand_code(8)
+    expires_at = (datetime.now(timezone.utc) + timedelta(hours=payload.expires_hours or 168)).isoformat()
+    doc = {
+        "id": str(uuid.uuid4()), "code": code, "role": "counselor",
+        "school_id": school["id"], "school_name": school_name,
+        "created_by": user["id"], "created_at": datetime.now(timezone.utc).isoformat(),
+        "expires_at": expires_at, "used": False, "used_by": None,
+    }
+    await db.school_invites.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+class CounselorAddStudentInput(BaseModel):
+    name: str
+    grade: str
+    parent_email: Optional[EmailStr] = None
+    student_email: EmailStr
+
+
+@api.post("/counselor/students")
+async def counselor_add_student(payload: CounselorAddStudentInput,
+                                 user: dict = Depends(require_roles("counselor"))):
+    email = payload.student_email.lower()
+    if await db.users.find_one({"email": email}):
+        raise HTTPException(400, "Student email already exists")
+    pw = f"Learn@{uuid.uuid4().hex[:8]}"
+    student_id = str(uuid.uuid4())
+    await db.users.insert_one({
+        "id": student_id, "name": payload.name, "email": email,
+        "role": "student", "grade": payload.grade,
+        "school_name": user.get("school_name"),
+        "linked_student_emails": [],
+        "password_hash": hash_password(pw),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    parent_info = None
+    if payload.parent_email:
+        pemail = payload.parent_email.lower()
+        parent = await db.users.find_one({"email": pemail})
+        if parent and parent.get("role") == "parent":
+            emails = set([e.lower() for e in (parent.get("linked_student_emails") or [])])
+            emails.add(email)
+            await db.users.update_one({"id": parent["id"]}, {"$set": {"linked_student_emails": list(emails)}})
+            parent_info = {"email": pemail, "status": "linked_existing"}
+        elif parent:
+            parent_info = {"email": pemail, "status": "email_belongs_to_non_parent"}
+        else:
+            # create parent account
+            ppw = f"Parent@{uuid.uuid4().hex[:8]}"
+            await db.users.insert_one({
+                "id": str(uuid.uuid4()), "name": f"Parent of {payload.name}",
+                "email": pemail, "role": "parent",
+                "linked_student_emails": [email],
+                "password_hash": hash_password(ppw),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            })
+            parent_info = {"email": pemail, "temp_password": ppw, "status": "created"}
+    return {
+        "student": {"email": email, "temp_password": pw, "name": payload.name, "grade": payload.grade},
+        "parent": parent_info,
+    }
+
+
 @api.get("/")
 async def root():
     return {"message": "PathfinderAiClub API", "status": "ok"}

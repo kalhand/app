@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import api, { formatApiErrorDetail } from "@/lib/api";
 import { toast } from "sonner";
 import { Users, ListChecks, FileText, ArrowRight, Globe2, Plus, Copy, Loader2 } from "lucide-react";
+import InviteButton from "@/components/InviteButton";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({ users: 0, questions: 0, assessments: 0 });
@@ -71,6 +72,10 @@ export default function AdminDashboard() {
             <button onClick={() => setShowForm((v) => !v)} data-testid="admin-new-univ-btn" className="btn-brutal bg-blue-600 text-white px-4 py-2 text-sm flex items-center gap-2">
               <Plus size={14} strokeWidth={2.5} /> Add University
             </button>
+          </div>
+
+          <div className="mb-6">
+            <InviteButton endpoint="/admin/invites" role="university" label="Invite University via one-tap link" testId="admin-invite-univ-btn" />
           </div>
 
           {showForm && (

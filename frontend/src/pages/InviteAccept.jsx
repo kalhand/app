@@ -30,7 +30,9 @@ export default function InviteAccept() {
       localStorage.setItem("pf_token", data.token);
       toast.success(`Welcome, ${data.user.name}!`);
       // Full reload to hydrate AuthContext
-      window.location.href = data.user.role === "principal" ? "/principal" : "/counselor";
+      window.location.href = data.user.role === "university" ? "/university"
+        : data.user.role === "principal" ? "/principal"
+        : "/counselor";
     } catch (e) {
       toast.error(formatApiErrorDetail(e.response?.data?.detail) || "Could not accept invite");
     } finally {

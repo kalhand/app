@@ -9,9 +9,6 @@ import { Loader2, GraduationCap, Users, HeartHandshake, Building2 } from "lucide
 
 const ROLES = [
   { value: "student", label: "Student", icon: GraduationCap, color: "bg-[#FEF08A]", desc: "Take the assessment & get AI career guidance" },
-  { value: "parent", label: "Parent / Guardian", icon: HeartHandshake, color: "bg-[#A7F3D0]", desc: "Track your child's assessment & report" },
-  { value: "counselor", label: "School Counselor", icon: Users, color: "bg-[#E9D5FF]", desc: "See all students in your school" },
-  { value: "principal", label: "School Principal", icon: Building2, color: "bg-[#FFDDBF]", desc: "School-wide analytics dashboard" },
 ];
 
 export default function Register() {
@@ -98,7 +95,7 @@ export default function Register() {
             </div>
 
             {role === "student" && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="label-mono block mb-2">Class / Grade</label>
                   <input data-testid="register-grade" placeholder="e.g. 10" value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })} className="w-full px-4 py-3 border-2 border-[#0A0A0A] rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
@@ -109,10 +106,6 @@ export default function Register() {
                     <option value="">Select board</option>
                     {BOARDS.map((b) => <option key={b} value={b}>{b}</option>)}
                   </select>
-                </div>
-                <div>
-                  <label className="label-mono block mb-2">School</label>
-                  <input data-testid="register-school" value={form.school_name} onChange={(e) => setForm({ ...form, school_name: e.target.value })} className="w-full px-4 py-3 border-2 border-[#0A0A0A] rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
               </div>
             )}
