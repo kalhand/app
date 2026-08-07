@@ -165,24 +165,55 @@ Public registration is **disabled** — the platform is strictly invite-driven.
 
 ---
 
-## 11. Roadmap — Next Increments
+## 11. Roadmap — Next Increments (with effort & timelines)
 
-### P1 (High priority)
-- 🎨 **Co-branded Invite Landing** — welcome page at `/invite/:code` with school logo + inviter name
-- 📧 **Real Invite Email Delivery** — Resend or SendGrid integration (needs API key)
-- 🖼️ **Rayat Bahara Real Logo** — replace placeholder with official crest
+**Effort legend:** 1 dev-day ≈ 6–8 productive coding hours. Estimates include implementation + self-testing + testing-agent verification. All items can be built inside Emergent E1 by the AI agent (no external contractor hours needed).
 
-### P2 (Medium priority)
-- 🗓️ Class timeline & assessment reminders
-- 📝 Audit trail for invitations
-- 📅 On-demand counselor session booking
-- 📊 Percentile benchmarking across cohorts
-- 📥 Bulk question CSV import for admins
+### P1 — High Priority (Target: Sprint 1, ~1 week)
 
-### P3 (Nice to have)
-- Adaptive difficulty / question randomization
-- Report retake versioning & history diff
-- Aggregated national/regional benchmark dashboards
+| # | Item | Effort | Elapsed Time | Dependencies |
+|---|---|---|---|---|
+| 1.1 | 🎨 **Co-branded Invite Landing** — welcome page at `/invite/:code` showing school logo + inviter name before password setup | **S** (0.5 day) | 3–4 hrs | None — pure frontend + 1 GET endpoint |
+| 1.2 | 📧 **Real Invite Email Delivery** — Resend or SendGrid integration for invite links + credentials | **M** (1 day) | 6–8 hrs | 🔑 Client API key (Resend/SendGrid) |
+| 1.3 | 🖼️ **Rayat Bahara Real Logo** — replace placeholder with official crest | **XS** (15 min) | 15 min | Direct image URL or AI-generated crest |
+
+**P1 total: ~1.75 dev-days**
+
+### P2 — Medium Priority (Target: Sprint 2, ~2 weeks)
+
+| # | Item | Effort | Elapsed Time | Dependencies |
+|---|---|---|---|---|
+| 2.1 | 🗓️ **Assessment Reminders** — class-timeline + email/in-app nudges for pending assessments | **M** (1.5 days) | 10–12 hrs | Depends on 1.2 (email) |
+| 2.2 | 📝 **Invitation Audit Trail** — log who invited whom, when, used/unused, revoke ability | **S** (1 day) | 6–8 hrs | None |
+| 2.3 | 📅 **Counselor Session Booking** — students request slots; counselor calendar view | **L** (2.5 days) | 18–20 hrs | Optional Google Calendar sync |
+| 2.4 | 📊 **Percentile Benchmarking** — student rank vs cohort on aptitude/mental_ability | **M** (1.5 days) | 10–12 hrs | Needs ≥ 30 assessments in DB |
+| 2.5 | 📥 **Bulk Question CSV Import** — admin uploads .csv → validated question bank | **S** (1 day) | 6–8 hrs | None |
+
+**P2 total: ~7.5 dev-days**
+
+### P3 — Nice to Have (Target: Sprint 3+, ~3 weeks)
+
+| # | Item | Effort | Elapsed Time | Dependencies |
+|---|---|---|---|---|
+| 3.1 | 🎯 **Adaptive Difficulty** — next question adjusts based on running score | **L** (3 days) | 22–24 hrs | Requires question difficulty tagging |
+| 3.2 | 📚 **Report Versioning & Diff** — history of retakes, side-by-side comparison | **M** (2 days) | 14–16 hrs | None |
+| 3.3 | 🌏 **National / Regional Benchmarks** — aggregated public dashboards | **L** (3 days) | 22–24 hrs | Needs anonymised aggregation layer |
+
+**P3 total: ~8 dev-days**
+
+---
+
+### 📅 Timeline Summary
+
+| Sprint | Duration | Deliverables | Cumulative |
+|---|---|---|---|
+| **Sprint 1** | Week 1 | All P1 items (1.75 days work) | Invite emails live |
+| **Sprint 2** | Weeks 2–3 | All P2 items (7.5 days work) | Full counselor workflow |
+| **Sprint 3** | Weeks 4–5 | Selected P3 items (8 days work) | Adaptive engine + benchmarks |
+
+**Total end-to-end (P1 + P2 + P3): ~17 dev-days ≈ 4–5 calendar weeks** at 1 developer, faster if items are parallelised or agent-accelerated.
+
+**Effort key:** XS < 0.25 day · S = 0.5–1 day · M = 1–2 days · L = 2.5–3 days · XL > 3 days
 
 ---
 
